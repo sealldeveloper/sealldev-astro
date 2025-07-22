@@ -11,7 +11,7 @@ image: "images/24-mapnactf/icon.png"
 
 If we open the given PCAP we can look at it in Wireshark, looking at the packets, we can see in some of them small segments of data.
 
-![Data](images/24-uoftctf/plc-1.png)
+![Data](images/24-mapnactf/plc-1.png)
 
 After looking through all the packets I see the following:
 
