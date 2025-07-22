@@ -1,0 +1,300 @@
+---
+// ToolCard.astro - Update to support grid and list views
+import { Icon } from "astro-icon/components";
+import { Image } from "astro:assets";
+import { extractTagSuggestions } from "~/utils/auto-hyperlink";
+import { getCollection } from "astro:content";
+
+const { tool } = Astro.props;
+
+// Process tags
+const tags = tool.data.tags || [];
+
+// Extract suggested tags from content if the tool has insufficient tags
+let suggestedTags = [];
+if (!tool.data.tags || tool.data.tags.length < 3) {
+  // Extract suggested tags, excluding any that are already in the existing tags
+  suggestedTags = extractTagSuggestions(tool.body, tool.data.tags || []).slice(0, 3);
+}
+
+// Get categories
+const categories = tool.data.categories || [];
+
+// JSON string for data attributes
+const tagsJson = JSON.stringify(tags);
+const categoriesJson = JSON.stringify(categories);
+const suggestedTagsJson = JSON.stringify(suggestedTags);
+const platformsJson = JSON.stringify(tool.data.platforms || []);
+const toolDataJson = JSON.stringify({
+  title: tool.data.title,
+  description: tool.data.description,
+  url: tool.data.url,
+  github: tool.data.github,
+  documentation: tool.data.documentation,
+  logo: tool.data.logo?.src || null,
+  body: tool.body,
+  platforms: tool.data.platforms || [],
+  categories: tool.data.categories || [],
+  tags: tool.data.tags || [],
+  suggestedTags: suggestedTags
+});
+
+// Get platform icons
+const getPlatformIcon = (platform) => {
+  const platforms = {
+    "windows": { name: "Windows", icon: "mdi:microsoft-windows" },
+    "macos": { name: "macOS", icon: "mdi:apple" },
+    "linux": { name: "Linux", icon: "mdi:linux" },
+    "android": { name: "Android", icon: "mdi:android" },
+    "ios": { name: "iOS", icon: "mdi:apple-ios" },
+    "web": { name: "Web", icon: "mdi:web" },
+    "cli": { name: "CLI", icon: "mdi:console" },
+    "docker": { name: "Docker", icon: "mdi:docker" },
+    "multiplatform": { name: "Multi-platform", icon: "mdi:laptop" }
+  };
+
+  return platforms[platform?.toLowerCase()] || { name: platform, icon: "mdi:laptop" };
+};
+
+// Get category data objects with color assignments
+async function getCategoryData() {
+  const categoryData = {};
+  const categoriesCollection = await getCollection("categories");
+  
+  // First try to get colors from categories collection
+  for (const category of categories) {
+    try {
+      // Try to fetch category by slug (convert category name to slug format)
+      const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
+      const foundCategory = categoriesCollection.find(c => c.id === categorySlug);
+      
+      if (foundCategory && foundCategory.data.color) {
+        categoryData[category] = {
+          color: foundCategory.data.color,
+          iconImage: foundCategory.data.iconImage || null,
+          icon: foundCategory.data.icon || null
+        };
+      }
+    } catch (e) {
+      // Category not found - will handle in next step
+    }
+  }
+  
+  // For any remaining categories without colors, assign from the predefined list
+  let colorIndex = 0;
+  for (const category of categories) {
+    if (!categoryData[category]) {
+      categoryData[category] = {
+        color: getCategoryColor(category),
+        iconImage: null,
+        icon: getCategoryIcon(category)
+      };
+      colorIndex++;
+    }
+  }
+  
+  return categoryData;
+}
+
+// Get category color based on name
+function getCategoryColor(category) {
+  const categoryColorMap = {
+    "Web": "#3b82f6",
+    "Pwn": "#ef4444",
+    "FullPwn": "#f97316",
+    "Rev": "#6366f1",
+    "Misc": "#a855f7",
+    "OSINT": "#06b6d4",
+    "AI": "#0ea5e9",
+    "Network Forensics": "#ec4899",
+    "Windows Forensics": "#8b5cf6",
+    "Disk Forensics": "#10b981",
+    "Memory Forensics": "#f59e0b",
+    "Forensics": "#8b5cf6"
+  };
+  
+  return categoryColorMap[category] || "#a1a1aa"; // Default gray if no match
+}
+
+// Get category icon based on name
+function getCategoryIcon(category) {
+  const categoryIconMap = {
+    "Web": "🌐",
+    "Pwn": "💥",
+    "FullPwn": "🔓",
+    "Rev": "⚙️",
+    "Misc": "🧩",
+    "OSINT": "🔍",
+    "AI": "🤖",
+    "Network Forensics": "📡",
+    "Windows Forensics": "🪟",
+    "Disk Forensics": "💽",
+    "Memory Forensics": "🧠",
+    "Forensics": "🔬"
+  };
+  
+  return categoryIconMap[category] || null;
+}
+
+const categoryData = await getCategoryData();
+
+// Truncate description to a certain length if needed
+const description = tool.data.description || "";
+const truncatedDescription = description.length > 120 
+  ? description.substring(0, 120) + "..." 
+  : description;
+---
+
+<div
+  class="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-background-alt p-4 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-pointer view-card"
+  data-tool-card
+  data-platforms={platformsJson}
+  data-categories={categoriesJson}
+  data-tags={tagsJson}
+  data-suggested-tags={suggestedTagsJson}
+  data-tool-data={toolDataJson}
+  data-tool-id={tool.slug}
+  data-tool-modal-trigger
+>
+  <div class="grid-categories-content">
+    <div class="view-card-header flex items-center">
+      {tool.data.logo ? (
+        <div class="mr-3 h-10 w-10 flex-shrink-0 overflow-hidden rounded-md">
+          <Image 
+            src={tool.data.logo} 
+            alt={`${tool.data.title} logo`} 
+            width={40} 
+            height={40} 
+            class="h-full w-full object-contain"
+          />
+        </div>
+      ) : (
+        <span class="mr-2 inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-background-offset text-lg text-primary">
+          <Icon name="mdi:wrench" class="size-5" />
+        </span>
+      )}
+      <h3 class="text-text text-lg font-bold transition-colors group-hover:text-primary">
+        {tool.data.title}
+      </h3>
+    </div>
+
+    {/* Tool description */}
+    {description && (
+      <p class="view-card-description mt-2 text-text-offset text-sm">
+        {truncatedDescription}
+      </p>
+    )}
+
+    <div class="view-card-meta mt-3">
+      {/* Supported platforms */}
+      {(tool.data.platforms && tool.data.platforms.length > 0) && (
+        <div class="view-card-platforms mt-2 flex flex-wrap gap-1">
+          {tool.data.platforms.map((platform) => {
+            const platformInfo = getPlatformIcon(platform);
+            return (
+              <span 
+                class="text-text-offset rounded-full bg-background-offset p-1.5 text-xs flex items-center justify-center" 
+                title={platformInfo.name}
+              >
+                <Icon name={platformInfo.icon} class="size-4" />
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Categories */}
+      {categories.length > 0 && (
+        <div class="view-card-categories mt-2 flex flex-wrap gap-1">
+          {categories.map((category) => {
+            const catData = categoryData[category] || { color: "#a1a1aa" };
+            return (
+              <span 
+                class="rounded-full px-2 py-0.5 text-xs font-medium text-white flex items-center transition-colors"
+                style={`background-color: ${catData.color}; opacity: 0.85;`}
+              >
+                {/* Category icon - show image icon first, then fall back to text icon */}
+                {catData.iconImage ? (
+                  <Image 
+                    src={catData.iconImage} 
+                    alt={`${category} icon`}
+                    width={16}
+                    height={16}
+                    class="mr-1 inline-block"
+                  />
+                ) : catData.icon ? (
+                  <span class="mr-1">{catData.icon}</span>
+                ) : null}
+                
+                {category}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Tags */}
+      <div class="view-card-tags mt-2 flex flex-wrap gap-1">
+        {/* Display assigned tags */}
+        {tags.map((tag) => (
+          <span class="bg-primary text-white rounded-full px-2 py-0.5 text-xs">
+            #{tag}
+          </span>
+        ))}
+        
+        {/* Display suggested tags if any */}
+        {suggestedTags.length > 0 && (
+          <>
+            {suggestedTags.map((tag) => (
+              <span class="border-primary/30 text-text-offset rounded-full border border-dashed px-2 py-0.5 text-xs">
+                #{tag}
+              </span>
+            ))}
+          </>
+        )}
+      </div>
+    </div>
+
+    {/* URL buttons */}
+    <div class="view-card-links mt-3 flex flex-wrap gap-1.5">
+      {tool.data.url && (
+        <a 
+          href={tool.data.url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="hover:bg-primary/90 flex items-center gap-1.5 rounded-lg bg-primary px-2 py-1 text-xs text-white transition-colors"
+          onclick="event.stopPropagation();"
+        >
+          <Icon name="mdi:web" class="size-3.5" />
+          Website
+        </a>
+      )}
+      
+      {tool.data.github && (
+        <a 
+          href={tool.data.github} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="hover:bg-background flex items-center gap-1.5 rounded-lg border border-border bg-background-offset px-2 py-1 text-xs transition-colors"
+          onclick="event.stopPropagation();"
+        >
+          <Icon name="mdi:github" class="size-3.5" />
+          GitHub
+        </a>
+      )}
+      
+      {tool.data.documentation && (
+        <a 
+          href={tool.data.documentation} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          class="hover:bg-background flex items-center gap-1.5 rounded-lg border border-border bg-background-offset px-2 py-1 text-xs transition-colors"
+          onclick="event.stopPropagation();"
+        >
+          <Icon name="mdi:file-document" class="size-3.5" />
+          Docs
+        </a>
+      )}
+    </div>
+  </div>
+</div>

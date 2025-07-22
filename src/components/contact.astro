@@ -1,0 +1,140 @@
+---
+import { Icon } from "astro-icon/components";
+import ContentSection from "~/components/content-section.astro";
+import { Code } from 'astro:components';
+
+const socialLinks = [
+  {
+    url: "https://twitter.com/sealldev",
+    description: "Twitter",
+    icon: "mdi:twitter",
+  },
+  {
+    url: "https://bsky.app/profile/seall.dev",
+    description: "Bluesky",
+    icon: "mdi:butterfly",
+  },
+  {
+    url: "https://discordapp.com/users/630874656198361099",
+    description: "Discord",
+    icon: "mdi:discord",
+  },
+  {
+    url: "https://www.linkedin.com/in/noah-cooper-5442ab309/",
+    description: "LinkedIn", 
+    icon: "mdi:linkedin",
+  },
+];
+---
+
+<ContentSection title="Contact" id="contact" altBackground={false}>
+  <Fragment slot="lead">
+    <div class="mx-auto max-w-6xl">
+      <div class="grid lg:grid-cols-2 gap-8">
+        <!-- Contact Info -->
+        <div class="bg-slate-800/30 rounded-xl p-8 border border-slate-700/50">
+          <h3 class="text-2xl font-bold text-primary mb-6 flex items-center gap-2">
+            <Icon name="mdi:email" class="size-6" />
+            Email
+          </h3>
+          <div class="space-y-4 text-gray-300">
+            <Code code={`$ python3\n>>> "{ihate}@{ihate}{crawlers}".format(ihate="seal", crawlers="l.dev")`} lang="py" wrap class="p-4 rounded-lg"></Code>
+            
+            <!-- PGP Command -->
+            <div class="mt-6">
+              <div class="flex items-center gap-2 text-lg font-medium text-primary mb-3">
+                <Icon name="mdi:key" class="size-5" />
+                (っ◔◡◔)っ ♥ pgp ♥
+              </div>
+              <Code code={`curl 'https://seall.dev/public-key.asc' | gpg --import`} lang="bash" wrap class="p-4 rounded-lg"></Code>
+              
+              <!-- Key Change Info Button -->
+              <div class="mt-3">
+                <a 
+                  href="/proof.txt" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="inline-block text-xs text-gray-400 hover:text-white bg-slate-700/50 hover:bg-slate-700/80 px-3 py-1 rounded-full transition-colors"
+                >
+                  why did your key change
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Social Links -->
+        <div class="bg-slate-800/30 rounded-xl p-8 border border-slate-700/50">
+          <h3 class="text-2xl font-bold text-primary mb-6 flex items-center gap-2">
+            <Icon name="mdi:link" class="size-6" />
+            Socials
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {socialLinks.map((link) => (
+              <a 
+                href={link.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="flex items-center gap-3 p-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 transition-colors group"
+              >
+                <Icon name={link.icon} class="size-5 text-primary group-hover:scale-110 transition-transform" />
+                <span class="text-gray-300 group-hover:text-white transition-colors">{link.description}</span>
+              </a>
+            ))}
+          </div>
+          <div class="mt-3">
+                <a 
+                  href="https://keyoxide.org/aspe:keyoxide.org:HDKVRFKX26N642GAEH7WUEVU2Q" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="inline-block text-xs text-gray-400 hover:text-white bg-slate-700/50 hover:bg-slate-700/80 px-3 py-1 rounded-full transition-colors"
+                >
+                  Keyoxide
+                </a>
+              </div>
+        </div>
+      </div>
+    </div>
+  </Fragment>
+</ContentSection>
+
+<style>
+  /* Code block styling */
+  pre {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--color-primary)) transparent;
+  }
+
+  pre::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  pre::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  pre::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-primary));
+    border-radius: 2px;
+  }
+
+  /* Card animations */
+  .bg-slate-800\/30 {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  .bg-slate-800\/30:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>

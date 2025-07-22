@@ -1,0 +1,230 @@
+---
+import { Image } from 'astro:assets';
+import { getEntry } from 'astro:content';
+import { Icon } from "astro-icon/components";
+import { extractTagSuggestions } from "~/utils/auto-hyperlink";
+
+const { writeup } = Astro.props;
+
+// Format date
+const formattedDate = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+}).format(writeup.data.pubDate);
+
+// Identify difficulty tags
+const difficultyTags = ["easy", "medium", "hard"];
+
+// Prepare tags JSON for data attributes
+const tagsJSON = JSON.stringify(writeup.data.tags || []);
+
+// Find difficulty tag if it exists
+const difficultyTag = (writeup.data.tags || []).find(tag => 
+  difficultyTags.includes(tag.toLowerCase())
+);
+
+// Extract suggested tags from content if the writeup has insufficient tags
+let suggestedTags = [];
+if (!writeup.data.tags || writeup.data.tags.length < 3) {
+  // Extract suggested tags, excluding any that are already in the existing tags
+  suggestedTags = extractTagSuggestions(writeup.body, writeup.data.tags || []).slice(0, 3);
+}
+
+// Generate JSON for suggested tags to add to data attribute
+const suggestedTagsJSON = JSON.stringify(suggestedTags);
+
+// Get difficulty color and icon
+function getDifficultyInfo(tag) {
+  if (!tag) return null;
+  
+  const tagLower = tag.toLowerCase();
+  
+  switch(tagLower) {
+    case 'easy':
+      return {
+        color: '#4ade80', // green
+        bgColor: 'rgba(74, 222, 128, 0.2)',
+        icon: 'mdi:shield-check-outline'
+      };
+    case 'medium':
+      return {
+        color: '#fb923c', // orange
+        bgColor: 'rgba(251, 146, 60, 0.2)',
+        icon: 'mdi:shield-alert-outline'
+      };
+    case 'hard':
+      return {
+        color: '#f87171', // red
+        bgColor: 'rgba(248, 113, 113, 0.2)',
+        icon: 'mdi:shield-alert'
+      };
+    default:
+      return null;
+  }
+}
+
+const difficultyInfo = getDifficultyInfo(difficultyTag);
+
+// Get section data if it exists
+let sectionData = null;
+if (writeup.data.section) {
+  try {
+    // Try to fetch section by slug (convert section name to slug format)
+    const sectionSlug = writeup.data.section.toLowerCase().replace(/\s+/g, '-');
+    sectionData = await getEntry('sections', sectionSlug);
+  } catch (e) {
+    // Section doesn't exist in the collection - will be handled dynamically
+    sectionData = null;
+  }
+}
+
+// Get section info if available
+const sectionName = writeup.data.section || null;
+const sectionTextIcon = sectionData?.data?.icon || null;
+const sectionIconImage = sectionData?.data?.iconImage || null;
+const sectionColor = sectionData?.data?.color || null;
+
+// Determine which image to display - writeup image takes precedence
+const displayImage = writeup.data.image || null;
+---
+
+<a
+  href={`/writeups/${writeup.slug}`}
+  class="border-border bg-background-offset block overflow-hidden rounded-lg border transition-shadow hover:shadow-lg"
+  data-writeup-card
+  data-category={writeup.data.category || ""}
+  data-ctf={writeup.data.ctf || ""}
+  data-section={sectionName || ""}
+  data-tags={tagsJSON}
+  data-suggested-tags={suggestedTagsJSON}
+>
+  <div class="relative h-48 w-full bg-gradient-to-r from-primary to-secondary">
+    <!-- Text positioning - properly centered when no image, top-left when image is present -->
+    <div class={`absolute text-white ${displayImage ? 'top-4 left-4 w-3/5' : 'inset-0 flex items-center justify-center'}`}>
+      {!displayImage ? (
+        <div class="w-full text-center">
+          <span class="font-bold text-xl break-words">
+            {`${writeup.data.title}${writeup.data.ctf ? " / " + writeup.data.ctf : ""}` ||
+              writeup.data.ctf ||
+              "CTF Writeup"}
+          </span>
+        </div>
+      ) : (
+        <span class="font-bold text-xl break-words">
+          {`${writeup.data.title}${writeup.data.ctf ? " / " + writeup.data.ctf : ""}` ||
+            writeup.data.ctf ||
+            "CTF Writeup"}
+        </span>
+      )}
+    </div>
+    
+    <!-- Image if available, positioned to the right -->
+    {displayImage && (
+      <div class="absolute right-4 top-1/2 -translate-y-1/2 overflow-hidden rounded-lg border-2 border-white/50 shadow-lg h-36 w-36 md:h-40 md:w-40">
+        <Image
+          src={displayImage}
+          alt={writeup.data.title}
+          class="h-full w-full object-cover"
+        />
+      </div>
+    )}
+  </div>
+  
+  <div class="p-6">
+    <!-- Metadata badges area -->
+    <div class="mb-2 flex flex-wrap gap-2">
+      {/* Display section badge in metadata area */}
+      {
+        sectionName && (
+          <span 
+            class="rounded px-2 py-1 text-xs font-medium text-white flex items-center"
+            style={sectionColor ? `background-color: ${sectionColor}` : 'background-color: var(--color-primary)'}>
+            
+            {/* Section icon - show image icon first, then fall back to text icon */}
+            {sectionIconImage ? (
+              <Image 
+                src={sectionIconImage} 
+                alt={`${sectionName} icon`}
+                width={16}
+                height={16}
+                class="mr-1 inline-block"
+              />
+            ) : sectionTextIcon ? (
+              <span class="mr-1">{sectionTextIcon}</span>
+            ) : null}
+            
+            {sectionName}
+          </span>
+        )
+      }
+      {
+        writeup.data.ctf && (
+          <span class="bg-primary/20 rounded px-2 py-1 text-primary text-xs">
+            {writeup.data.ctf}
+          </span>
+        )
+      }
+      {
+        writeup.data.category && (
+          <span class="bg-secondary/20 rounded px-2 py-1 text-secondary text-xs">
+            {writeup.data.category}
+          </span>
+        )
+      }
+    </div>
+    
+    <h2 class="text-text mb-2 font-bold text-xl">{writeup.data.title}</h2>
+    <p class="text-text-offset mb-4 line-clamp-2">{writeup.data.description}</p>
+    
+    <!-- Display all tags -->
+    <div class="mb-3 flex flex-wrap gap-1">
+      {/* Display assigned tags with special styling for difficulty tags */}
+      {writeup.data.tags && writeup.data.tags.map((tag) => {
+        // Check if this is a difficulty tag for PicoCTF
+        const isDifficultyTag = difficultyTags.includes(tag.toLowerCase()) && (writeup.data.section === "PicoCTF" || writeup.data.section === "HackTheBox");
+        const tagInfo = isDifficultyTag ? getDifficultyInfo(tag) : null;
+        
+        return isDifficultyTag ? (
+          <span 
+            class="rounded-full px-2 py-0.5 text-xs font-medium flex items-center"
+            style={`background-color: ${tagInfo.bgColor}; color: ${tagInfo.color};`}>
+            <Icon name={tagInfo.icon} class="size-3 mr-1" />
+            <span class="capitalize">{tag}</span>
+          </span>
+        ) : (
+          <span class="bg-background-alt rounded-full px-2 py-0.5 text-primary text-xs">
+            #{tag}
+          </span>
+        );
+      })}
+      
+      {/* Display suggested tags if any */}
+      {suggestedTags.length > 0 && (
+        <>
+          {suggestedTags.map((tag) => (
+            <span class="border-primary/30 text-text-offset rounded-full border border-dashed px-2 py-0.5 text-xs">
+              #{tag}
+            </span>
+          ))}
+        </>
+      )}
+    </div>
+    
+    <div class="flex items-center">
+      <time
+        class="text-text-offset text-sm"
+        datetime={writeup.data.pubDate.toISOString()}
+      >
+        {formattedDate}
+      </time>
+      {
+        writeup.data.author && (
+          <span class="text-text-offset ml-2 text-sm">
+            • by <span class="text-primary">{writeup.data.author}</span>
+          </span>
+        )
+      }
+    </div>
+  </div>
+</a>

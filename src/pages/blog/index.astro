@@ -1,0 +1,576 @@
+---
+import { getCollection } from "astro:content";
+import Header from "~/components/header.astro";
+import Footer from "~/components/footer.astro";
+import BlogCard from "~/components/blogs/BlogCard.astro";
+import ContentSection from "~/components/content-section.astro";
+import "~/styles/index.css";
+import LogoBlock from "~/components/logo-block.astro";
+import { Icon } from "astro-icon/components";
+import { Image } from "astro:assets";
+const { generator, site } = Astro;
+
+// Get all blogs and sort by date, filter out hidden ones
+const allBlogs = await getCollection("blogs");
+const blogs = allBlogs.filter((blog) => !blog.data.hidden);
+
+// Sort blogs by date
+const sortedBlogs = blogs.sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+
+// No categories or topics needed
+
+// Get all sections from the sections collection with their icons/images
+const sectionCollection = await getCollection("sections");
+const sectionsMap = new Map();
+
+// Process sections from the section collection
+sectionCollection.forEach((section) => {
+  sectionsMap.set(section.data.name, {
+    icon: section.data.icon || null,
+    iconImage: section.data.iconImage || null,
+    color: section.data.color || null,
+  });
+});
+
+// Get unique sections from blogs
+const sectionNames = [
+  ...new Set(blogs.map((post) => post.data.section).filter(Boolean)),
+];
+
+// Create a formatted sections array with icon information
+const sections = sectionNames.map((name) => {
+  const sectionInfo = sectionsMap.get(name) || {
+    icon: null,
+    iconImage: null,
+    color: null,
+  };
+  return {
+    name,
+    icon: sectionInfo.icon,
+    iconImage: sectionInfo.iconImage,
+    color: sectionInfo.color,
+  };
+});
+
+// Create a searchable index for client-side search
+const searchIndex = sortedBlogs.map((blog) => {
+  const searchableText = [
+    blog.data.title,
+    blog.data.description,
+    blog.data.section,
+    blog.body, // This includes the content for searching
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return {
+    slug: blog.slug,
+    searchableText,
+    section: blog.data.section || "",
+  };
+});
+
+// No tags needed
+const tags = [];
+
+const description = "Technical blogs, tutorials, and thoughts on development.";
+const title = "Blog | sealldev";
+---
+
+<!doctype html>
+<html lang="en" class="h-full motion-safe:scroll-smooth" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta content="#ec4899" data-react-helmet="true" name="theme-color" />
+    <meta name="generator" content={generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <meta property="og:title" content="Blog | sealldev" />
+    <meta property="og:type" content="website" />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={site} />
+
+    <script is:inline>
+      const themeSaved = localStorage.getItem("theme");
+
+      if (themeSaved) {
+        document.documentElement.dataset.theme = themeSaved;
+      } else {
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
+        document.documentElement.dataset.theme = prefersDark ? "dark" : "light";
+      }
+    </script>
+
+    <script
+      is:inline
+      src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"
+    ></script>
+  </head>
+
+  <body
+    class="h-full overflow-x-hidden bg-default text-default text-base selection:bg-secondary selection:text-white"
+  >
+    <Header />
+
+    <main>
+      <br />
+      <ContentSection title="Blog" id="blogs">
+        <Fragment slot="lead">
+          <div class="mx-auto max-w-2xl">
+            <p class="text-center font-bold leading-relaxed tracking-tight">
+              Brain spillages in the form of text containing
+              <span class="text-primary">research</span>, and <span class="text-primary">other travesties.</span>
+            </p>
+          </div>
+        </Fragment>
+
+        <div class="mt-8 w-full">
+          <!-- Global Search field with tag integration -->
+          <div class="mb-8">
+            <div class="relative mx-auto w-full max-w-xl">
+              <div
+                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
+              >
+                <Icon name="mdi:magnify" class="text-text-offset size-5" />
+              </div>
+              <div
+                id="search-input-container"
+                class="border-border bg-background-offset text-text flex min-h-[42px] items-center rounded-lg border p-2 pl-10 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
+              >
+                <input
+                  type="text"
+                  id="search-input"
+                  class="h-[28px] w-full border-none bg-transparent p-1 text-sm focus:ring-0"
+                  placeholder="Search blogs..."
+                />
+              </div>
+              <div
+                id="search-status"
+                class="text-text-offset absolute right-0 top-0 flex hidden h-full items-center pr-4 text-sm"
+              >
+                Found <span id="result-count" class="mx-1 font-bold">0</span> results
+              </div>
+
+              <!-- Tag dropdown - removed since no tags -->
+              <!-- <div id="tag-dropdown" ... removed ... --> 
+            </div>
+            <script is:inline define:vars={{ searchIndex, blogs }}>
+              // Simple word count for display purposes
+              const formattedBlogCount = blogs.length.toLocaleString();
+
+              // Update the placeholder text immediately
+              const searchInput = document.getElementById("search-input");
+              if (searchInput) {
+                searchInput.placeholder = `Search ${formattedBlogCount} blogs...`;
+              }
+            </script>
+          </div>
+
+          <!-- Section buttons -->
+          {
+            sections.length > 0 && (
+              <div class="mb-6">
+                <h3 class="text-text-offset mb-3 font-medium text-sm">
+                  Browse by Section
+                </h3>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    class="section-btn active hover:bg-primary/80 rounded-full bg-primary px-4 py-2 font-medium text-white transition-colors text-sm"
+                    data-section=""
+                  >
+                    All
+                  </button>
+                  {sections.map((section) => (
+                    <button
+                      class="section-btn bg-background-offset text-text hover:bg-background-alt flex items-center rounded-full px-4 py-2 font-medium transition-colors text-sm"
+                      data-section={section.name}
+                      style={
+                        section.color
+                          ? `background-color: ${section.color}20; color: ${section.color};`
+                          : ""
+                      }
+                    >
+                      {section.iconImage ? (
+                        <Image
+                          src={section.iconImage}
+                          alt={`${section.name} icon`}
+                          width={16}
+                          height={16}
+                          class="mr-1.5"
+                        />
+                      ) : section.icon ? (
+                        <span class="mr-1.5">{section.icon}</span>
+                      ) : null}
+                      {section.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          }
+
+          <!-- Advanced filters - removed -->
+          <!-- Category and Topic filters - removed -->
+
+          <div
+            id="blogs-container"
+            class="space-y-6"
+          >
+            {sortedBlogs.map((blog) => <BlogCard blog={blog} />)}
+          </div>
+
+          <!-- No results message -->
+          <div id="no-results" class="hidden py-10 text-center">
+            <p class="text-text-offset font-bold text-xl">
+              No blogs found matching your filters.
+            </p>
+            <p class="text-text-offset mt-2">
+              Try adjusting your search terms, tags, or filters.
+            </p>
+            <button
+              id="reset-filters"
+              class="hover:bg-primary/80 mt-4 rounded-lg bg-primary px-4 py-2 text-white transition-colors"
+            >
+              Reset all filters
+            </button>
+          </div>
+        </div>
+      </ContentSection>
+    </main>
+
+    <Footer />
+
+    <script 
+      define:vars={{ 
+        searchIndex, 
+        sections
+      }}
+    >
+      // Client-side filtering and searching
+      const searchInput = document.getElementById("search-input");
+      const blogCards = document.querySelectorAll("[data-blog-card]");
+      const blogContainer = document.getElementById("blogs-container");
+      const noResultsMessage = document.getElementById("no-results");
+      const searchStatus = document.getElementById("search-status");
+      const resetFiltersBtn = document.getElementById("reset-filters");
+      const sectionBtns = document.querySelectorAll(".section-btn");
+
+      let debounceTimeout;
+      let currentSection = "";
+
+      function debounce(func, wait) {
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(debounceTimeout);
+            func(...args);
+          };
+
+          clearTimeout(debounceTimeout);
+          debounceTimeout = setTimeout(later, wait);
+        };
+      }
+
+      // Remove tag bubble functionality - no longer needed
+      function createTagBubble(tag) {
+        return null;
+      }
+
+      function addTag(tag) {
+        return;
+      }
+
+      function removeTag(tag) {
+        return;
+      }
+
+      // Remove tag suggestions - no longer needed
+      function showTagSuggestions(searchText) {
+        return;
+      }
+
+      // Update UI when section selection changes
+      function updateSectionUI() {
+        sectionBtns.forEach((btn) => {
+          const section = btn.getAttribute("data-section");
+          const sectionObj = sections.find((s) => s.name === section);
+
+          if (section === currentSection) {
+            btn.classList.add("bg-primary", "text-white", "active");
+            btn.classList.remove(
+              "bg-background-offset",
+              "text-text",
+              "hover:bg-background-alt",
+            );
+
+            if (sectionObj && sectionObj.color) {
+              btn.style.backgroundColor = sectionObj.color;
+              btn.style.color = "white";
+            }
+          } else {
+            btn.classList.remove("bg-primary", "text-white", "active");
+
+            if (sectionObj && sectionObj.color) {
+              btn.style.backgroundColor = `${sectionObj.color}20`;
+              btn.style.color = sectionObj.color;
+            } else {
+              btn.classList.add(
+                "bg-background-offset",
+                "text-text",
+                "hover:bg-background-alt",
+              );
+            }
+          }
+        });
+      }
+
+      // Apply all filters and search with highlighting
+      function applyFiltersAndSearch() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+
+        // First, make sure blog container is visible
+        blogContainer.classList.remove("hidden");
+
+        // Remove any previous highlighting
+        document.querySelectorAll(".search-highlight").forEach((el) => {
+          const parent = el.parentNode;
+          parent.replaceChild(document.createTextNode(el.textContent), el);
+          parent.normalize();
+        });
+
+        let visibleCount = 0;
+
+        blogCards.forEach((card) => {
+          const slug = card.getAttribute("href")?.split("/").pop();
+
+          // Get section from searchIndex
+          const indexEntry = searchIndex.find((entry) => entry.slug === slug);
+          const section = indexEntry ? indexEntry.section : "";
+
+          const sectionMatch = !currentSection || section === currentSection;
+
+          // Search match with highlighting
+          let searchMatch = true;
+          if (searchTerm) {
+            // Get the title and description elements for highlighting
+            const titleElement = card.querySelector("h2");
+            const descElement = card.querySelector("p.line-clamp-3, p.mb-4");
+
+            if (indexEntry) {
+              // Regular search in all content
+              searchMatch = indexEntry.searchableText.includes(searchTerm);
+
+              // If we have a match, highlight the text
+              if (searchMatch && searchTerm.length > 0) {
+                // Check if the match is in the title
+                const titleText = titleElement?.textContent?.toLowerCase() || "";
+                if (titleText.includes(searchTerm) && titleElement) {
+                  highlightText(titleElement, searchTerm);
+                }
+
+                // Check if the match is in the description
+                const descText = descElement?.textContent?.toLowerCase() || "";
+                if (descText.includes(searchTerm) && descElement) {
+                  highlightText(descElement, searchTerm);
+                }
+              }
+            } else {
+              searchMatch = false;
+            }
+          }
+
+          if (sectionMatch && searchMatch) {
+            card.classList.remove("hidden");
+            visibleCount++;
+          } else {
+            card.classList.add("hidden");
+          }
+        });
+
+        // Show/hide no results message
+        if (visibleCount === 0) {
+          blogContainer.classList.add("hidden");
+          noResultsMessage.classList.remove("hidden");
+        } else {
+          blogContainer.classList.remove("hidden");
+          noResultsMessage.classList.add("hidden");
+
+          // Show search status if searching
+          if (searchTerm) {
+            searchStatus.innerHTML = `Found <span id="result-count" class="font-bold mx-1">${visibleCount}</span> results`;
+            searchStatus.classList.remove("hidden");
+          } else {
+            searchStatus.classList.add("hidden");
+          }
+        }
+      }
+
+      // Helper function to highlight search term in an element
+      function highlightText(element, searchTerm) {
+        if (!element || !searchTerm || searchTerm === "") return;
+
+        const originalText = element.textContent;
+        const lowerOriginal = originalText.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+
+        if (!lowerOriginal.includes(lowerSearch)) return;
+
+        // Clear element content
+        while (element.firstChild) {
+          element.removeChild(element.firstChild);
+        }
+
+        let lastIndex = 0;
+        let index = lowerOriginal.indexOf(lowerSearch);
+
+        while (index !== -1) {
+          // Add text before the match
+          if (index > lastIndex) {
+            element.appendChild(
+              document.createTextNode(originalText.substring(lastIndex, index)),
+            );
+          }
+
+          // Add highlighted match with inline styles
+          const highlightSpan = document.createElement("span");
+          highlightSpan.className = "search-highlight";
+          highlightSpan.style.backgroundColor = "rgba(236, 72, 153, 0.3)";
+          highlightSpan.style.color = "var(--color-primary, #ec4899)";
+          highlightSpan.style.fontWeight = "bold";
+          highlightSpan.style.padding = "0 2px";
+          highlightSpan.style.borderRadius = "3px";
+          highlightSpan.style.boxShadow = "0 0 0 1px rgba(236, 72, 153, 0.5)";
+          highlightSpan.textContent = originalText.substring(
+            index,
+            index + searchTerm.length,
+          );
+          element.appendChild(highlightSpan);
+
+          // Update last index
+          lastIndex = index + searchTerm.length;
+
+          // Find next match
+          index = lowerOriginal.indexOf(lowerSearch, lastIndex);
+        }
+
+        // Add any remaining text
+        if (lastIndex < originalText.length) {
+          element.appendChild(
+            document.createTextNode(originalText.substring(lastIndex)),
+          );
+        }
+      }
+
+      // Reset all filters
+      function resetFilters() {
+        searchInput.value = "";
+        currentSection = "";
+
+        updateSectionUI();
+        applyFiltersAndSearch();
+      }
+
+      // Add event listeners
+      searchInput?.addEventListener(
+        "input",
+        debounce(function () {
+          applyFiltersAndSearch();
+        }, 300),
+      );
+
+      // Handle Enter key on search input
+      searchInput?.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          applyFiltersAndSearch();
+        }
+      });
+
+      // Add event listeners
+      resetFiltersBtn?.addEventListener("click", resetFilters);
+
+      // Section button clicks
+      sectionBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          currentSection = btn.getAttribute("data-section");
+          updateSectionUI();
+          applyFiltersAndSearch();
+        });
+      });
+
+      // Close dropdown when clicking outside - removed since no dropdown
+      // Add this to handle resizing - removed since no dropdown
+
+      // Ensure the header always has the fixed-header class
+      const header = document.getElementById("page-header");
+      if (header) {
+        header.classList.add("fixed-header");
+      }
+
+      // Initialize the UI on page load
+      updateSectionUI();
+    </script>
+
+    <style>
+      /* Transitions for buttons */
+      .section-btn {
+        transition: all 0.2s ease-in-out;
+      }
+
+      /* Active states */
+      .section-btn.active {
+        font-weight: 600;
+      }
+
+      /* Search highlighting styles */
+      .search-highlight {
+        background-color: rgba(
+          236,
+          72,
+          153,
+          0.25
+        ); /* Primary color with transparency */
+        color: var(--color-primary, #ec4899);
+        font-weight: 700; /* Bold text */
+        border-radius: 0.125rem;
+        padding: 0 0.125rem;
+        box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.5); /* Outline effect */
+        position: relative;
+        text-shadow: 0 0 2px rgba(255, 255, 255, 0.5); /* Text glow for better contrast */
+        transition: all 0.2s ease;
+        display: inline;
+        white-space: pre-wrap;
+      }
+
+      /* Dark mode specific adjustments */
+      [data-theme="dark"] .search-highlight {
+        background-color: rgba(241, 126, 184, 0.3); /* Brighter in dark mode */
+        box-shadow: 0 0 0 1px rgba(241, 126, 184, 0.6); /* Stronger outline in dark mode */
+        text-shadow: 0 0 3px rgba(0, 0, 0, 0.7); /* Dark text shadow for better contrast */
+      }
+
+      /* Animation effect for highlights */
+      @keyframes highlight-pulse {
+        0% {
+          background-color: rgba(236, 72, 153, 0.2);
+        }
+        50% {
+          background-color: rgba(236, 72, 153, 0.4);
+        }
+        100% {
+          background-color: rgba(236, 72, 153, 0.2);
+        }
+      }
+
+      .search-highlight {
+        animation: highlight-pulse 2s ease-in-out infinite;
+      }
+    </style>
+  </body>
+</html>

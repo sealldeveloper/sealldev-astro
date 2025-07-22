@@ -1,0 +1,6 @@
+{
+    "name": "Network Forensics",
+    "icon": "📡",
+    "description": "Analysis of network traffic and logs to identify security incidents and attacker activities",
+    "color": "#ec4899"
+}

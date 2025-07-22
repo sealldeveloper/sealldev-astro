@@ -1,0 +1,122 @@
+---
+import { Icon } from "astro-icon/components";
+import { Image } from "astro:assets";
+
+interface Props {
+  blog: any;
+}
+
+const { blog } = Astro.props;
+
+// Format the date
+const formattedDate = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+}).format(blog.data.pubDate);
+
+// Reading time calculation (approximate)
+const wordsPerMinute = 200;
+const wordCount = blog.body.split(/\s+/).length;
+const readingTime = Math.ceil(wordCount / wordsPerMinute);
+---
+
+<a
+  href={`/blog/${blog.slug}`}
+  class="block w-full transition-all duration-300 ease-in-out hover:scale-[1.01] hover:shadow-xl"
+  data-blog-card
+  data-section={blog.data.section || ""}
+>
+  <article class="border-border bg-background-offset hover:bg-background-alt relative w-full overflow-hidden rounded-lg border transition-all duration-300">
+    
+    <!-- Header with gradient background and optional image -->
+    <div class="relative h-64 w-full overflow-hidden">
+      <!-- Gradient background -->
+      <div class="absolute inset-0 bg-gradient-to-r from-primary to-secondary"></div>
+      
+      <!-- Blog title and meta overlay -->
+      <div class="absolute inset-0 p-6 text-white z-10 flex flex-col justify-between">
+        <div class="pr-56"> <!-- Add right padding to avoid image overlap -->
+          <h2 class="font-bold text-2xl leading-tight break-words mb-4">
+            {blog.data.title}
+          </h2>
+          
+          <!-- Section badge -->
+          {blog.data.section && (
+            <span class="bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium inline-block">
+              {blog.data.section}
+            </span>
+          )}
+        </div>
+        
+        <!-- Meta information at bottom -->
+        <div class="flex items-center justify-between pr-56"> <!-- Add right padding here too -->
+          <div class="flex items-center gap-4 text-sm">
+            <div class="flex items-center gap-1">
+              <Icon name="mdi:calendar" class="size-4" />
+              <time datetime={blog.data.pubDate.toISOString()}>
+                {formattedDate}
+              </time>
+            </div>
+            
+            <div class="flex items-center gap-1">
+              <Icon name="mdi:clock-outline" class="size-4" />
+              <span>{readingTime} min read</span>
+            </div>
+          </div>
+          
+          {blog.data.author && (
+            <div class="flex items-center gap-1 text-sm">
+              <Icon name="mdi:account" class="size-4" />
+              <span>{blog.data.author}</span>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      <!-- Optional featured image (positioned at right) -->
+      {blog.data.image && (
+        <div class="absolute right-6 top-1/2 -translate-y-1/2 overflow-hidden rounded-lg border-2 border-white/50 shadow-lg h-48 w-48">
+          <Image
+            src={blog.data.image}
+            alt={blog.data.title}
+            class="h-full w-full object-cover"
+            width={400}
+            height={400}
+          />
+        </div>
+      )}
+    </div>
+
+    <!-- Content section -->
+    <div class="p-6">
+      <!-- Description -->
+      <p class="text-text-offset line-clamp-3 text-base leading-relaxed">
+        {blog.data.description}
+      </p>
+    </div>
+
+    <!-- Hover indicator -->
+    <div class="absolute bottom-0 left-0 h-1 w-0 bg-primary transition-all duration-300 group-hover:w-full"></div>
+  </article>
+</a>
+
+<style>
+  /* Ensure consistent card styling */
+  [data-blog-card] {
+    min-height: auto;
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Hover effects */
+  [data-blog-card]:hover .absolute.bottom-0 {
+    width: 100%;
+  }
+</style>

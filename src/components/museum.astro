@@ -1,0 +1,189 @@
+---
+import { getCollection } from "astro:content";
+import ContentSection from "~/components/content-section.astro";
+import PlinthImg from "/src/assets/plinth.png";
+const seals = await getCollection("seals");
+const perPage = 3;
+const sealsData = seals.map(seal => ({
+  image: seal.data.image.src,
+  name: seal.data.name,
+  author: seal.data.author,
+  flavourtext: seal.data.flavourtext,
+  sealMarginTop: seal.data.sealMarginTop
+}));
+---
+
+<ContentSection title="Museum of Seals" id="museum" altBackground={false}>
+  <h2>a <i>very serious</i> museum of seals people i know have drawn</h2>
+  <div id="seal-carousel" class="seal-grid">
+    {sealsData.slice(0, perPage).map((seal, i) => (
+      <div class="seal-plinth" data-index={i}>
+        <div class="seal-stack">
+          <div class="seal-img-container fade-target" style={`transform: translateY(${typeof seal.sealMarginTop === "number" ? seal.sealMarginTop : 0}px);`}>
+            <img src={seal.image} alt={seal.name} class="seal-img" />
+          </div>
+          <div class="plinth-img-container">
+            <img src={PlinthImg.src} alt="Stone plinth" class="plinth-img" />
+          </div>
+        </div>
+        <div class="plinth-engraving fade-target">
+          <div class="seal-name">{seal.name.toUpperCase()}</div>
+          <div class="seal-author">by {seal.author}</div>
+          {seal.flavourtext && (
+            <div class="seal-flavour">"{seal.flavourtext}"</div>
+          )}
+        </div>
+      </div>
+    ))}
+  </div>
+  <h3 class="text-lg font-bold text-primary mb-4 flex items-center gap-2">a weirdly common question - why?</h3>
+  <span class="max-w-3xl">most adults don't really have time or a desire to pop a pack of crayolas and do a silly drawing without judgement. i thought this would be fun to do and result in a small display of joy to have on my site. if you want to contribute a seal, contact me and ill happily add it :&gt; (if you are cool and rad)</span>
+
+  <script define:vars={{ sealsData }}>
+    // Fisher-Yates shuffle (unbiased)[1][2][5]
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    // Shuffle seals on load
+    const shuffled = shuffle([...sealsData]);
+    const perPage = 3;
+    let current = 0;
+    const grid = document.getElementById('seal-carousel');
+
+    function showSeals() {
+      grid.querySelectorAll('.seal-plinth').forEach((plinthDiv, i) => {
+        const seal = shuffled[(current + i) % shuffled.length];
+        // Update seal image
+        const imgContainer = plinthDiv.querySelector('.seal-img-container');
+        imgContainer.innerHTML = `<img src="${seal.image}" alt="${seal.name}" class="seal-img" />`;
+        imgContainer.style.transform = `translateY(${typeof seal.sealMarginTop === "number" ? seal.sealMarginTop : 0}px)`;
+        // Update engraving
+        const engraving = plinthDiv.querySelector('.plinth-engraving');
+        engraving.innerHTML = `
+          <div class="seal-name">${seal.name.toUpperCase()}</div>
+          <div class="seal-author">by ${seal.author}</div>
+          ${seal.flavourtext ? `<div class="seal-flavour">"${seal.flavourtext}"</div>` : ''}
+        `;
+      });
+    }
+
+    function fadeOutIn() {
+      const fadeTargets = grid.querySelectorAll('.fade-target');
+      fadeTargets.forEach(el => el.classList.add('fade-out'));
+      setTimeout(() => {
+        current = (current + perPage) % shuffled.length;
+        showSeals();
+        fadeTargets.forEach(el => {
+          el.classList.remove('fade-out');
+          el.classList.add('fade-in');
+        });
+        setTimeout(() => {
+          fadeTargets.forEach(el => el.classList.remove('fade-in'));
+        }, 400);
+      }, 400);
+    }
+
+    // Initial shuffle and display
+    showSeals();
+
+    // Rotate every 3 seconds
+    setInterval(fadeOutIn, 3000);
+  </script>
+</ContentSection>
+
+<style>
+.seal-grid {
+  display: flex;
+  justify-content: center;
+  gap: 3.5rem;
+}
+.seal-plinth {
+  min-width: 270px;
+  min-height: 420px;
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.seal-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.seal-img-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  width: 150px;
+  height: 150px;
+  margin-bottom: -38px;
+  position: relative;
+  z-index: 2;
+  transition: transform 0.3s;
+}
+.seal-img {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+}
+.plinth-img-container {
+  width: 210px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+}
+.plinth-img {
+  width: 210px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+.plinth-engraving {
+  margin-top: 18px;
+  width: 210px;
+  background: #fafaf9;
+  border: 1.5px solid #d4d4d4;
+  border-radius: 9px;
+  padding: 16px 10px 12px 10px;
+  font-family: 'Cinzel', serif;
+  font-size: 1.18rem;
+  color: #757575;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(120, 113, 108, 0.07);
+  letter-spacing: 0.01em;
+}
+.seal-name {
+  font-weight: bold;
+  letter-spacing: 0.03em;
+  font-size: 1.22em;
+  margin-bottom: 2px;
+}
+.seal-author {
+  font-size: 1.03em;
+  font-style: italic;
+  margin-bottom: 2px;
+  color: #8d8d8d;
+}
+.seal-flavour {
+  font-size: 1.01em;
+  color: #aaa;
+  margin-top: 4px;
+}
+.fade-target {
+  transition: opacity 0.4s cubic-bezier(.77,0,.18,1);
+}
+.fade-out {
+  opacity: 0;
+}
+.fade-in {
+  opacity: 1;
+}
+</style>

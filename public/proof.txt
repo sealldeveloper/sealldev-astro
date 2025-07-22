@@ -1,0 +1,25 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+- -----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+This is sealldev, I am switching my key as I forgot to add an email like a moron.
+
+This is my keyoxide profile that contains my socials: https://keyoxide.org/aspe:keyoxide.org:HDKVRFKX26N642GAEH7WUEVU2Q
+
+Thanks all :catjam:
+- -----BEGIN PGP SIGNATURE-----
+
+iHUEARYKAB0WIQThEnJqFcqSH8diKhA9ODzZ+51iSAUCaH/GkAAKCRA9ODzZ+51i
+SActAQDYzfi7QFjDfXrE2zerJUlmjqeWa7alhxgogF5QDcbr2wEAqwIf1fPW4QWR
+nTqN8HGsTQbOxQMPnonxvhE7kz/XHg4=
+=DD36
+- -----END PGP SIGNATURE-----
+-----BEGIN PGP SIGNATURE-----
+
+iHUEARYKAB0WIQSWBB9ebW/8TrQPAEiCBqzzA+BfsQUCaH/GtwAKCRCCBqzzA+Bf
+sZeoAQCkFja0281S00zCFva4ToeKlmDXKa6xNh9o+DLcNZ0mdwD+JKRw1xB8RFaP
+SX/ccNQwDMihs7Tr/A45o70UokRTgAc=
+=DDdw
+-----END PGP SIGNATURE-----

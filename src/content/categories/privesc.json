@@ -1,0 +1,6 @@
+{
+    "name": "PrivEsc",
+    "icon": "🔑",
+    "description": "Tools for local and remote privilege escalation that help attackers gain higher-level access on systems",
+    "color": "#e11d48"
+}

@@ -1,0 +1,6 @@
+{
+    "name": "Stego",
+    "icon": "🔍",
+    "description": "Tools for creating, detecting, and extracting information hidden using steganography techniques in various media formats",
+    "color": "#0d9488"
+}

@@ -1,0 +1,6 @@
+{
+    "name": "Hardware",
+    "icon": "🔌",
+    "description": "Tools for interfacing with, analyzing, and exploiting physical hardware devices, embedded systems, and electronic components",
+    "color": "#ef4444"
+}

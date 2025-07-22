@@ -1,0 +1,430 @@
+---
+import { Icon } from "astro-icon/components";
+import ContentSection from "~/components/content-section.astro";
+import { getCollection } from "astro:content";
+
+// Define team information with icons and links
+const teams = {
+  "MQCyberSec": {
+    name: "MQCyberSec",
+    icon: "mdi:school",
+    url: "https://mqcybersec.org/",
+    color: "text-purple-500"
+  },
+  "IrisSec": {
+    name: "IrisSec", 
+    icon: "mdi:eye",
+    url: "https://irissec.xyz/",
+    color: "text-green-500"
+  },
+  "thehackerscrew": {
+    name: "thehackerscrew",
+    icon: "mdi:wrench",
+    url: "https://www.thehackerscrew.team/",
+    color: "text-orange-500"
+  },
+  "Emu Exploit": {
+    name: "Emu Exploit",
+    icon: "mdi:bird",
+    url: "https://emu.team/",
+    color: "text-red-500"
+  },
+  "Friendly Maltese Citizens": {
+    name: "Friendly Maltese Citizens",
+    icon: "mdi:dog",
+    url: "https://ctf.mt/",
+    color: "text-blue-500"
+  },
+  "TantoSec": {
+    name: "TantoSec",
+    icon: "mdi:sword",
+    url: "https://tantosec.com/",
+    color: "text-red-900"
+  },
+  "default": {
+    name: "Team",
+    icon: "mdi:account-group",
+    url: "#",
+    color: "text-gray-400"
+  }
+};
+
+// Fetch CTF competitions data and flatten into a single list
+const competitions = await getCollection("ctfs", ({ data }) => "name" in data);
+
+const allPlacements = [];
+competitions.forEach((competition) => {
+  if (competition.data && Array.isArray(competition.data.placements)) {
+    competition.data.placements.forEach((placement) => {
+      allPlacements.push({
+        name: competition.data.name,
+        year: placement.year,
+        globalPlacement: placement.globalPlacement,
+        totalTeams: placement.totalTeams,
+        australiaPlacement: placement.australiaPlacement,
+        teamName: placement.teamName || "",
+      });
+    });
+  }
+});
+
+// Sort all placements by global placement (best first)
+const sortedPlacements = allPlacements.sort((a, b) => {
+  // First, prioritize global 1st place
+  if (a.globalPlacement === 1 && b.globalPlacement !== 1) return -1;
+  if (b.globalPlacement === 1 && a.globalPlacement !== 1) return 1;
+  
+  // Then prioritize Australia 1st place
+  if (a.australiaPlacement === 1 && b.australiaPlacement !== 1) return -1;
+  if (b.australiaPlacement === 1 && a.australiaPlacement !== 1) return 1;
+  
+  // Then prioritize other top 10 global placements
+  const aIsTop10 = a.globalPlacement <= 10;
+  const bIsTop10 = b.globalPlacement <= 10;
+  
+  if (aIsTop10 !== bIsTop10) return aIsTop10 ? -1 : 1;
+  if (aIsTop10 && bIsTop10) return a.globalPlacement - b.globalPlacement;
+  
+  // Then prioritize other top Australia placements
+  const aAusTop10 = a.australiaPlacement && a.australiaPlacement <= 10;
+  const bAusTop10 = b.australiaPlacement && b.australiaPlacement <= 10;
+  
+  if (aAusTop10 !== bAusTop10) return aAusTop10 ? -1 : 1;
+  if (aAusTop10 && bAusTop10) return (a.australiaPlacement || 0) - (b.australiaPlacement || 0);
+  
+  // Finally sort by percentage if available
+  const aPercentage = a.totalTeams ? (a.globalPlacement / a.totalTeams) * 100 : 100;
+  const bPercentage = b.totalTeams ? (b.globalPlacement / b.totalTeams) * 100 : 100;
+  
+  return aPercentage - bPercentage;
+});
+
+const getMedalInfo = (placement: number) => {
+  switch (placement) {
+    case 1:
+      return { emoji: "🥇", color: "text-yellow-400" };
+    case 2:
+      return { emoji: "🥈", color: "text-gray-400" };
+    case 3:
+      return { emoji: "🥉", color: "text-amber-700" };
+    default:
+      return null;
+  }
+};
+
+const getTeamInfo = (teamName: string) => {
+  return teams[teamName] || teams["default"];
+};
+
+const calculatePercentage = (placement: number, total?: number) => {
+  if (!total) return null;
+  return ((placement / total) * 100).toFixed(1);
+};
+
+// Pagination settings - now 10 per page
+const ITEMS_PER_PAGE = 10;
+const totalPages = Math.ceil(sortedPlacements.length / ITEMS_PER_PAGE);
+
+---
+
+<ContentSection title="CTFs" id="ctfs" altBackground={false}>
+  <Fragment slot="lead">
+    I've played in many <span class="text-primary">CTF</span> competitions, 
+    these are some I feel I did enough work in to list.
+  </Fragment>
+
+  <div class="ctf-container mx-auto max-w-full px-4">
+    <!-- CTF List Container -->
+    <div class="ctf-list-container" data-total-pages={totalPages}>
+      
+      <div class="min-h-[600px]">
+        {Array.from({ length: totalPages }).map((_, pageIndex) => (
+          <div
+            class="ctf-page hidden"
+            data-page={pageIndex + 1}
+          >
+            <div class="space-y-3">
+              {sortedPlacements
+                .slice(pageIndex * ITEMS_PER_PAGE, (pageIndex + 1) * ITEMS_PER_PAGE)
+                .map((placement) => {
+                  const globalMedal = getMedalInfo(placement.globalPlacement);
+                  const aussieMedal = placement.australiaPlacement ? getMedalInfo(placement.australiaPlacement) : null;
+                  const teamInfo = getTeamInfo(placement.teamName);
+                  const percentage = calculatePercentage(placement.globalPlacement, placement.totalTeams);
+
+                  return (
+                    <div class="ctf-item bg-offset border border-default rounded-lg p-4 hover:bg-slate-800/40 transition-colors min-w-full">
+                      <!-- Desktop Layout: Single Line -->
+                      <div class="hidden md:flex items-center justify-between gap-4 min-w-0 w-full">
+                        
+                        <!-- Left side: CTF Name and Team -->
+                        <div class="flex items-center gap-4 min-w-0 flex-1">
+                          <div class="min-w-0 flex-1">
+                            <h3 class="text-xl font-bold text-white truncate">
+                              {placement.name}
+                            </h3>
+                          </div>
+                          
+                          <div class="flex items-center gap-3 text-sm flex-shrink-0">
+                            <span class="text-gray-400 font-medium">{placement.year}</span>
+                            {placement.teamName && (
+                              <div class="flex items-center gap-1">
+                                <Icon name={teamInfo.icon} class={`size-4 ${teamInfo.color}`} />
+                                <a 
+                                  href={teamInfo.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  class="text-primary hover:underline font-medium"
+                                >
+                                  {placement.teamName}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <!-- Right side: Placements -->
+                        <div class="flex items-center gap-6 flex-shrink-0">
+                          <!-- Global Placement -->
+                          <div class="flex items-center gap-2">
+                            <span class={`text-lg font-bold ${globalMedal?.color || 'text-white'}`}>
+                              {globalMedal?.emoji || ''}
+                              #{placement.globalPlacement}
+                              {placement.totalTeams && ` / ${placement.totalTeams}`}
+                            </span>
+                            {percentage && parseFloat(percentage) <= 10 && placement.globalPlacement > 5 && (
+                              <span class="text-primary text-sm font-medium">
+                                (Top {percentage}%)
+                              </span>
+                            )}
+                          </div>
+
+                          <!-- Australia Placement -->
+                          {placement.australiaPlacement && (
+                            <div class="flex items-center gap-2">
+                              <span class="text-gray-400 text-sm">Australia:</span>
+                              <span class={`text-sm font-bold ${aussieMedal?.color || 'text-gray-300'}`}>
+                                {aussieMedal?.emoji || ''}
+                                #{placement.australiaPlacement}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <!-- Mobile Layout: Stacked -->
+                      <div class="md:hidden space-y-3 w-full">
+                        <!-- Top Row: CTF Name and Year -->
+                        <div class="flex items-center justify-between gap-2">
+                          <h3 class="text-lg font-bold text-white truncate">
+                            {placement.name}
+                          </h3>
+                          <span class="text-gray-400 text-sm font-medium flex-shrink-0">{placement.year}</span>
+                        </div>
+
+                        <!-- Middle Row: Team Info -->
+                        {placement.teamName && (
+                          <div class="flex items-center gap-2">
+                            <Icon name={teamInfo.icon} class={`size-4 ${teamInfo.color}`} />
+                            <a 
+                              href={teamInfo.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              class="text-primary hover:underline font-medium text-sm"
+                            >
+                              {placement.teamName}
+                            </a>
+                          </div>
+                        )}
+
+                        <!-- Bottom Row: Placements -->
+                        <div class="flex items-center justify-between gap-4">
+                          <!-- Global Placement -->
+                          <div class="flex items-center gap-2">
+                            <span class={`text-base font-bold ${globalMedal?.color || 'text-white'}`}>
+                              {globalMedal?.emoji || ''}
+                              #{placement.globalPlacement}
+                              {placement.totalTeams && ` / ${placement.totalTeams}`}
+                            </span>
+                            {percentage && parseFloat(percentage) <= 10 && placement.globalPlacement > 5 && (
+                              <span class="text-primary text-xs font-medium">
+                                (Top {percentage}%)
+                              </span>
+                            )}
+                          </div>
+
+                          <!-- Australia Placement -->
+                          {placement.australiaPlacement && (
+                            <div class="flex items-center gap-2">
+                              <span class="text-gray-400 text-xs">AUS:</span>
+                              <span class={`text-sm font-bold ${aussieMedal?.color || 'text-gray-300'}`}>
+                                {aussieMedal?.emoji || ''}
+                                #{placement.australiaPlacement}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Pagination Controls -->
+      {totalPages > 1 && (
+        <div class="mt-8 flex items-center justify-center gap-4">
+          <button
+            class="prev-page rounded-lg border-2 border-primary px-4 py-2 font-bold hover:bg-primary hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-current"
+            disabled
+          >
+            <Icon name="mdi:chevron-left" class="size-5" />
+          </button>
+          
+          <span class="page-indicator font-medium text-gray-300">
+            Page 1 of {totalPages}
+          </span>
+          
+          <button
+            class="next-page rounded-lg border-2 border-primary px-4 py-2 font-bold hover:bg-primary hover:text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-current"
+            disabled={totalPages <= 1}
+          >
+            <Icon name="mdi:chevron-right" class="size-5" />
+          </button>
+        </div>
+      )}
+
+      <!-- Stats Summary -->
+      <div class="mt-8 text-center">
+        <p class="text-gray-400 text-sm">
+          Showing {sortedPlacements.length} total placements
+        </p>
+      </div>
+
+    </div>
+  </div>
+</ContentSection>
+
+
+<script>
+  let currentPage = 1;
+  let totalPages = 1;
+
+  function updateNavigationButtons() {
+    const prevButton = document.querySelector('.prev-page') as HTMLButtonElement;
+    const nextButton = document.querySelector('.next-page') as HTMLButtonElement;
+    const pageIndicator = document.querySelector('.page-indicator');
+
+    if (prevButton) {
+      prevButton.disabled = currentPage === 1;
+    }
+    if (nextButton) {
+      nextButton.disabled = currentPage === totalPages;
+    }
+    if (pageIndicator) {
+      pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+    }
+  }
+
+  function showPage(pageNumber: number) {
+    // Hide all pages
+    const pages = document.querySelectorAll('.ctf-page');
+    pages.forEach(page => {
+      page.classList.add('hidden');
+    });
+
+    // Show target page
+    const targetPage = document.querySelector(`[data-page="${pageNumber}"]`);
+    if (targetPage) {
+      targetPage.classList.remove('hidden');
+      
+      // Animate items
+      const items = targetPage.querySelectorAll('.ctf-item');
+      items.forEach((item, index) => {
+        item.style.animationDelay = `${index * 50}ms`;
+        item.classList.add('animate-fade-in');
+      });
+    }
+
+    currentPage = pageNumber;
+    updateNavigationButtons();
+
+    // Scroll to top of CTF section
+    const ctfSection = document.querySelector('#ctfs');
+    if (ctfSection) {
+      ctfSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  // Event listeners
+  document.addEventListener('DOMContentLoaded', () => {
+    const container = document.querySelector('.ctf-list-container');
+    if (container) {
+      totalPages = parseInt(container.getAttribute('data-total-pages') || '1');
+    }
+
+    const prevButton = document.querySelector('.prev-page');
+    const nextButton = document.querySelector('.next-page');
+
+    prevButton?.addEventListener('click', () => {
+      if (currentPage > 1) {
+        showPage(currentPage - 1);
+      }
+    });
+
+    nextButton?.addEventListener('click', () => {
+      if (currentPage < totalPages) {
+        showPage(currentPage + 1);
+      }
+    });
+
+    // Show first page initially
+    showPage(1);
+  });
+</script>
+
+<style>
+  .ctf-item {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.3s ease-out forwards;
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .animate-fade-in {
+    animation: fadeInUp 0.3s ease-out forwards;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Ensure consistent width across all items */
+  .ctf-item {
+    box-sizing: border-box;
+  }
+  
+  .ctf-container {
+    width: 100%;
+  }
+
+  /* Make sure all items stretch to full available width */
+  .ctf-page {
+    width: 100%;
+  }
+  
+  .ctf-page > div {
+    width: 100%;
+  }
+</style>

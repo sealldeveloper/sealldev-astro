@@ -1,0 +1,165 @@
+---
+import { Icon } from "astro-icon/components";
+import LogoBlock from "~/components/logo-block.astro";
+import CursorContrail from "~/components/cursor-contrail.astro";
+import type { NavItem } from "~/types";
+import StarTrail from "./StarTrail.astro";
+
+const navItems: Array<NavItem & { icon: string }> = [
+  { title: "", url: "/", icon: "mdi:home" },
+  { title: "", url: "/whoami", icon: "mdi:account" },
+  { title: "", url: "/ctfs", icon: "mdi:flag" },
+  { title: "", url: "/writeups", icon: "mdi:pencil" },
+  { title: "", url: "/blog", icon: "mdi:post" },
+  { title: "", url: "/museum", icon: "mdi:museum" },
+  { title: "", url: "/contact", icon: "mdi:email" },
+];
+---
+
+<header
+  id="page-header"
+  class="absolute bottom-0 z-20 flex w-full items-center justify-between border-b border-transparent px-8 py-4 text-white"
+>
+  <a class="flex items-center gap-3 hover:!text-default" href="/#">
+    <h1 class="sr-only">sealldev</h1>
+    <LogoBlock inClass="size-10" />
+    <p>sealldev</p>
+  </a>
+  <div>
+    <div class="flex items-center gap-6">
+      <nav class="hidden sm:block">
+        <ul class="flex items-center gap-6">
+          {
+            navItems.map(({ title, url, icon }) => (
+              <li>
+                <a class="flex items-center gap-2 text-sm hover:text-primary transition-colors" href={url}>
+                  <Icon name={icon} class="size-4" />
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+      <button
+        id="open-nav-button"
+        type="button"
+        class="btn sm:hidden"
+        aria-label="Navigation"
+      >
+        <Icon name="mdi:menu" class="size-8" />
+      </button>
+      <!-- <ThemeSwitcher /> -->
+    </div>
+    <div id="menu-modal" class="modal hidden" aria-hidden="true">
+      <div class="fixed inset-0 bg-default px-8 py-4 text-default">
+        <div class="space-y-4" role="dialog" aria-modal="true">
+          <header class="text-right">
+            <button
+              id="close-nav-button"
+              type="button"
+              class="btn"
+              aria-label="Close navigation"
+            >
+              <Icon name="mdi:close" class="size-8" />
+            </button>
+          </header>
+          <div class="flex justify-center">
+            <LogoBlock inClass="size-24" />
+          </div>
+          <nav>
+            <ul class="flex flex-col">
+              {
+                navItems.map(({ title, url, icon }) => (
+                  <li>
+                    <a class="flex items-center justify-center gap-3 py-4 text-center text-xl hover:text-primary transition-colors" href={url}>
+                      <Icon name={icon} class="size-6" />
+                      <span>{title}</span>
+                    </a>
+                  </li>
+                ))
+              }
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+<!-- <StarTrail/> -->
+
+<script>
+  import MicroModal from "micromodal";
+  import invariant from "tiny-invariant";
+
+  const menuModalId = "menu-modal";
+
+  const header = document.querySelector("#page-header") as HTMLElement;
+  const page = document.documentElement;
+  const menu = document.querySelector(`#${menuModalId} ul`);
+  const openNavButton = document.querySelector("#open-nav-button");
+  const closeNavButton = document.querySelector("#close-nav-button");
+
+  invariant(header, "header should not be null");
+  invariant(menu, "menu should not be null");
+  invariant(openNavButton, "openNavButton should not be null");
+  invariant(closeNavButton, "closeNavButton should not be null");
+
+  const openMenu = () => {
+    MicroModal.show(menuModalId, { disableScroll: true });
+  };
+
+  const closeMenu = () => {
+    MicroModal.close(menuModalId);
+  };
+
+  openNavButton.addEventListener("click", openMenu);
+  closeNavButton.addEventListener("click", closeMenu);
+
+  // Modified scroll event handler to ensure the header stays visible
+  document.addEventListener("scroll", () => {
+    // Always add the fixed-header class regardless of scroll position
+    header.classList.add("fixed-header");
+  });
+
+  // Initialize header as fixed on page load
+  document.addEventListener("DOMContentLoaded", () => {
+    header.classList.add("fixed-header");
+  });
+
+  menu.addEventListener("click", (event) => {
+    if ((event.target as HTMLElement).tagName === "A") {
+      closeMenu();
+    }
+  });
+</script>
+
+<noscript>
+  <style>
+    #open-nav-button {
+      display: none;
+    }
+  </style>
+</noscript>
+
+<style>
+  /* Ensure header stays on top */
+  #page-header {
+    @apply fixed top-0 z-50 w-full;
+    @apply border-b border-default bg-default text-default;
+  }
+
+  /* This style will apply when the fixed-header class is added */
+  .fixed-header {
+    @apply fixed bottom-auto top-0;
+    @apply border-default bg-default text-default;
+  }
+
+  .modal.is-open {
+    @apply block;
+  }
+
+  /* Ensure your main content has proper top padding */
+  main {
+    padding-top: 6rem; /* Adjust based on your header height */
+  }
+</style>

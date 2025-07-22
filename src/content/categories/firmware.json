@@ -1,0 +1,6 @@
+{
+    "name": "Firmware",
+    "icon": "🔌",
+    "description": "Tools for analyzing, extracting, and reverse engineering device firmware and embedded systems",
+    "color": "#8b5cf6"
+}

@@ -1,0 +1,6 @@
+{
+    "name": "Crypto",
+    "icon": "🔒",
+    "description": "Tools related to cryptography, including encryption, decryption, hashing, and cryptanalysis",
+    "color": "#059669"
+}

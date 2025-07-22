@@ -1,0 +1,6 @@
+{
+    "name": "Cloud",
+    "icon": "☁️",
+    "description": "Tools for security testing, exploitation, and defense of cloud environments including AWS, Azure, GCP, and other cloud platforms",
+    "color": "#0ea5e9"
+  }

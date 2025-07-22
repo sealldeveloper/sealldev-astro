@@ -1,0 +1,250 @@
+---
+import Header from "../components/header.astro";
+// Import other common components you use across pages
+
+// Import star images using glob pattern
+const starImages = import.meta.glob('/src/assets/star*.png', { eager: true });
+console.log('Found star images:', Object.keys(starImages));
+
+// Convert to URLs
+let starUrls = [];
+if (Object.keys(starImages).length > 0) {
+  starUrls = Object.keys(starImages).map(path => {
+    const imageModule = starImages[path];
+    console.log(`Processing star image: ${path}`, imageModule);
+    return imageModule.default?.src || imageModule.default || imageModule.src || path;
+  });
+  console.log('Star image URLs:', starUrls);
+}
+
+export interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "sealldev" } =
+  Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    
+    <style>
+      /* Star trail container */
+      #star-trail-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 9999;
+      }
+
+      /* Star trail elements */
+      .star-trail {
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.4));
+      }
+
+      .star-trail:nth-child(odd) {
+        filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
+      }
+
+      .star-trail:nth-child(even) {
+        filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
+      }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <footer class="p-8 text-center text-gray-500 text-sm">
+      &copy; {new Date().getFullYear()} sealldev. All rights reserved.
+    </footer>
+  </body>
+  <script define:vars={{ starUrls }}>
+    // Custom Cursor with Falling Star Trail
+    class StarTrail {
+      constructor() {
+        this.stars = [];
+        this.maxStars = 12;
+        this.mouseX = 0;
+        this.mouseY = 0;
+        this.lastTime = 0;
+        this.starUrls = starUrls || []; // Use the imported star URLs
+        this.init();
+      }
+
+      init() {
+        // Create star trail container
+        this.container = document.createElement('div');
+        this.container.id = 'star-trail-container';
+        document.body.appendChild(this.container);
+
+        // Add event listeners
+        document.addEventListener('mousemove', this.onMouseMove.bind(this));
+        document.addEventListener('mouseenter', this.onMouseEnter.bind(this));
+        document.addEventListener('mouseleave', this.onMouseLeave.bind(this));
+
+        // Start animation loop
+        this.animate();
+        
+        // Debug: Check available star images
+        console.log('StarTrail initialized with star URLs:', this.starUrls);
+        if (this.starUrls.length === 0) {
+          console.warn('No star images found! Will use CSS fallback stars.');
+        }
+      }
+
+      onMouseMove(e) {
+        this.mouseX = e.clientX;
+        this.mouseY = e.clientY;
+        
+        // Create star on every mouse move (remove throttling for now)
+        this.createStar();
+      }
+
+      onMouseEnter() {
+        this.container.style.display = 'block';
+      }
+
+      onMouseLeave() {
+        this.container.style.display = 'none';
+      }
+
+      createStar() {
+        console.log('Creating star at:', this.mouseX, this.mouseY); // Debug log
+        
+        if (this.stars.length >= this.maxStars) {
+          const oldStar = this.stars.shift();
+          if (oldStar.element.parentNode) {
+            oldStar.element.parentNode.removeChild(oldStar.element);
+          }
+        }
+
+        // Force CSS fallback for testing
+        this.createFallbackStar();
+      }
+
+      createFallbackStar(failedImgElement = null) {
+        console.log('Creating fallback star at:', this.mouseX, this.mouseY); // Debug log
+        
+        // Hide failed image if provided
+        if (failedImgElement) {
+          failedImgElement.style.display = 'none';
+        }
+        
+        const fallbackStar = document.createElement('div');
+        fallbackStar.innerHTML = '✦';
+        fallbackStar.className = 'star-trail';
+        fallbackStar.style.cssText = `
+          position: absolute;
+          font-size: 20px;
+          color: ${Math.random() > 0.5 ? '#FFD700' : '#FFFFFF'};
+          text-shadow: 0 0 10px currentColor;
+          transform: translate(-50%, -50%);
+          pointer-events: none;
+          z-index: 9999;
+        `;
+        fallbackStar.style.left = this.mouseX + 'px';
+        fallbackStar.style.top = this.mouseY + 'px';
+        fallbackStar.style.opacity = '1';
+        
+        console.log('Appending star to container:', this.container); // Debug log
+        this.container.appendChild(fallbackStar);
+        console.log('Star added, container children:', this.container.children.length); // Debug log
+
+        const starObj = {
+          element: fallbackStar,
+          createdTime: Date.now(),
+          startX: this.mouseX,
+          startY: this.mouseY,
+          fallSpeed: 2 + Math.random() * 3, // Increased fall speed for visibility
+          sideSpeed: (Math.random() - 0.5) * 1, // Increased side movement
+          opacity: 1,
+          twinkleOffset: Math.random() * Math.PI * 2,
+          isFallback: true
+        };
+
+        this.stars.push(starObj);
+        console.log('Total stars:', this.stars.length); // Debug log
+      }
+
+      animate() {
+        const now = Date.now();
+        
+        this.stars.forEach((star, index) => {
+          const age = now - star.createdTime;
+          const maxAge = 1200; // Longer lifetime to see twinkling
+          
+          if (age > maxAge) {
+            if (star.element.parentNode) {
+              star.element.parentNode.removeChild(star.element);
+            }
+            this.stars.splice(index, 1);
+            return;
+          }
+
+          // Calculate position with falling motion
+          const progress = age / 100; // Time factor for movement
+          const newX = star.startX + (star.sideSpeed * progress);
+          const newY = star.startY + (star.fallSpeed * progress);
+          
+          // Calculate base opacity with decay
+          const opacityProgress = age / maxAge;
+          const baseOpacity = Math.max(0, 1 - opacityProgress);
+          
+          // Add twinkling effect using sine wave
+          const twinkleSpeed = 0.008; // Speed of twinkling
+          const twinkleAmount = 0.4; // How much the star twinkles (0-1)
+          const twinkle = Math.sin((age * twinkleSpeed) + star.twinkleOffset) * twinkleAmount;
+          const finalOpacity = Math.max(0, Math.min(1, baseOpacity + (twinkle * baseOpacity)));
+          
+          // Apply position and opacity
+          star.element.style.left = newX + 'px';
+          star.element.style.top = newY + 'px';
+          star.element.style.opacity = finalOpacity;
+          
+          star.opacity = finalOpacity;
+        });
+
+        requestAnimationFrame(this.animate.bind(this));
+      }
+
+      destroy() {
+        if (this.container && this.container.parentNode) {
+          this.container.parentNode.removeChild(this.container);
+        }
+        document.removeEventListener('mousemove', this.onMouseMove);
+        document.removeEventListener('mouseenter', this.onMouseEnter);
+        document.removeEventListener('mouseleave', this.onMouseLeave);
+      }
+    }
+
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      window.starTrail = new StarTrail();
+    });
+
+    // Clean up on page unload
+    window.addEventListener('beforeunload', () => {
+      if (window.starTrail) {
+        window.starTrail.destroy();
+      }
+    });
+  </script>
+</html>

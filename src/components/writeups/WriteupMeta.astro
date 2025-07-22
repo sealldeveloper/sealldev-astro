@@ -1,0 +1,94 @@
+---
+// WriteupMeta.astro - Component for displaying the meta information with proper formatting
+const { entry } = Astro.props;
+
+// Function to format description text with proper styling
+function formatDescription(description) {
+  if (!description) return '';
+  
+  // Replace inline code blocks (wrapped in backticks) with proper HTML
+  let formatted = description.replace(/`([^`]+)`/g, '<code>$1</code>');
+  
+  // Replace newlines with <br> tags for proper line breaks
+  formatted = formatted.replace(/\n/g, '<br />');
+  
+  return formatted;
+}
+---
+
+<div class="writeup-meta">
+  <h2>Description</h2>
+  <p set:html={formatDescription(entry.data.description)}></p>
+</div>
+
+<style is:global>
+/* Meta information section styling with improved aesthetics */
+.writeup-meta {
+  background-color: rgba(var(--color-background-alt-rgb), 0.5);
+  border-left: 4px solid var(--color-primary);
+  padding: 1.5rem;
+  margin-bottom: 2.5rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.writeup-meta h2 {
+  font-size: 1.25rem !important; 
+  margin-top: 0 !important;
+  margin-bottom: 1rem !important;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  color: var(--color-primary) !important;
+  font-weight: 600 !important;
+}
+
+.writeup-meta p {
+  margin-bottom: 1rem !important;
+  line-height: 1.6 !important;
+  color: var(--color-text) !important;
+}
+
+.writeup-meta code {
+  background-color: var(--color-background-alt);
+  color: var(--color-primary);
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
+  font-weight: 500;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  display: inline-block;
+  max-width: 100%;
+  box-decoration-break: clone;
+}
+
+.writeup-meta ul {
+  margin-top: 0.75rem !important;
+  margin-bottom: 0 !important;
+  list-style-type: none !important;
+  padding-left: 0 !important;
+}
+
+.writeup-meta li {
+  margin-bottom: 0.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.writeup-meta li::before {
+  content: "•";
+  color: var(--color-primary);
+  font-weight: bold;
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+.writeup-meta li strong {
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+</style>

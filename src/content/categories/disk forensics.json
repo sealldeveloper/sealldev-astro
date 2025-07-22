@@ -1,0 +1,6 @@
+{
+    "name": "Disk Forensics",
+    "icon": "💽",
+    "description": "Analysis of storage media to recover deleted files and identify evidence of security incidents",
+    "color": "#10b981"
+}

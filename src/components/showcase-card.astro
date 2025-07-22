@@ -1,0 +1,36 @@
+---
+import { Image } from "astro:assets";
+import type { CollectionEntry } from "astro:content";
+
+export interface Props {
+  site: CollectionEntry<"showcase">;
+}
+
+const { site } = Astro.props;
+
+const widths = [1080, 1920];
+const sizes = "(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw";
+---
+
+<div class="hidden duration-700 ease-in-out" data-carousel-item>
+  <Image
+    class="showcase-image absolute left-1/2 top-1/2 block w-full -translate-x-1/2 -translate-y-1/2 cursor-pointer"
+    src={site.data.image}
+    widths={widths}
+    sizes={sizes}
+    alt={site.data.title}
+    loading="eager"
+    data-image-modal
+  />
+</div>
+
+<script>
+  document.querySelectorAll("[data-image-modal]").forEach((img) => {
+    img.addEventListener("click", () => {
+      const event = new CustomEvent("openImageModal", {
+        detail: { src: img.src },
+      });
+      window.dispatchEvent(event);
+    });
+  });
+</script>

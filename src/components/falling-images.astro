@@ -1,0 +1,519 @@
+---
+const id = "falling-images-field";
+
+
+import { getCollection } from "astro:content";
+const seals = await getCollection("seals");
+const imageUrls = seals.map(seal => seal.data.image.src);
+---
+
+<div id={id} class="absolute inset-0 overflow-hidden">
+  <canvas id="falling-canvas"></canvas>
+</div>
+
+<script define:vars={{ imageUrls }}>
+// Pseudorandom image selector class
+class PseudoRandomImageSelector {
+  constructor(imageUrls) {
+    this.imageUrls = imageUrls;
+    this.imageCount = imageUrls.length;
+    this.windowSize = this.imageCount + Math.ceil(0.3 * this.imageCount);
+    this.recentImages = []; // Track recently selected images
+    this.availableImages = [...imageUrls]; // Images available for selection
+    
+    console.log(`PseudoRandom selector initialized: ${this.imageCount} images, window size: ${this.windowSize}`);
+  }
+  
+  getNextImage() {
+    // If we don't have enough images to enforce the rule, just return random
+    if (this.imageCount <= 1) {
+      return this.imageUrls[0] || null;
+    }
+    
+    // If available images is empty, we need to refill it
+    if (this.availableImages.length === 0) {
+      // Remove the oldest images from recent tracking if we're at window size
+      while (this.recentImages.length >= this.windowSize) {
+        const oldestImage = this.recentImages.shift();
+        // Add it back to available images if it's not already there
+        if (!this.availableImages.includes(oldestImage)) {
+          this.availableImages.push(oldestImage);
+        }
+      }
+      
+      // If still empty, reset with all images except the most recent ones
+      if (this.availableImages.length === 0) {
+        this.availableImages = this.imageUrls.filter(url => 
+          !this.recentImages.slice(-this.imageCount).includes(url)
+        );
+        
+        // If that still leaves us empty (shouldn't happen), use all images
+        if (this.availableImages.length === 0) {
+          this.availableImages = [...this.imageUrls];
+        }
+      }
+    }
+    
+    // Select a random image from available images
+    const randomIndex = Math.floor(Math.random() * this.availableImages.length);
+    const selectedImage = this.availableImages[randomIndex];
+    
+    // Remove the selected image from available images
+    this.availableImages.splice(randomIndex, 1);
+    
+    // Add to recent images tracking
+    this.recentImages.push(selectedImage);
+    
+    // Trim recent images if it exceeds window size
+    if (this.recentImages.length > this.windowSize) {
+      this.recentImages.shift();
+    }
+    
+    return selectedImage;
+  }
+  
+  // Method to reset the selector (useful for testing or reinitialization)
+  reset() {
+    this.recentImages = [];
+    this.availableImages = [...this.imageUrls];
+  }
+}
+
+class FallingImage {
+  constructor(imageSrc, canvasWidth, canvasHeight, contrailOptions = {}) {
+    this.image = new Image();
+    this.imageSrc = imageSrc;
+    this.loaded = false;
+    this.loadError = false;
+    
+    // Image dimensions (will be set when loaded)
+    this.imageWidth = 0;
+    this.imageHeight = 0;
+    this.aspectRatio = 1;
+    
+    // Contrail properties - now configurable
+    this.contrail = [];
+    this.maxContrailLength = contrailOptions.maxLength || 4;
+    this.contrailIterations = contrailOptions.iterations || 20; // How many update cycles before disappearing
+    this.contrailOpacityMultiplier = contrailOptions.opacityMultiplier || 0.4;
+    this.contrailUpdateFrequency = contrailOptions.updateFrequency || 0.15; // Seconds between contrail points
+    
+    console.log('Creating falling image with src:', imageSrc);
+    
+    // Set up image loading
+    this.image.onload = () => {
+      this.loaded = true;
+      this.imageWidth = this.image.width;
+      this.imageHeight = this.image.height;
+      this.aspectRatio = this.imageWidth / this.imageHeight;
+      console.log('Image loaded successfully:', imageSrc, `${this.imageWidth}x${this.imageHeight}`);
+    };
+    
+    this.image.onerror = (e) => {
+      this.loadError = true;
+      console.error('Failed to load image:', imageSrc, e);
+    };
+    
+    // Set image source
+    this.image.src = imageSrc;
+    
+    // Position and movement
+    this.reset(canvasWidth, canvasHeight);
+    
+    // Visual properties
+    this.baseSize = 80 + Math.random() * 120; // Much larger size range
+    this.opacity = 0.7 + Math.random() * 0.3;
+    this.rotationSpeed = (Math.random() - 0.5) * 0.08; // Faster rotation
+    this.rotation = Math.random() * Math.PI * 2;
+    
+    // Drift properties
+    this.driftSpeed = 1.5 + Math.random() * 2.5; // Faster drift
+    this.driftOffset = Math.random() * Math.PI * 2;
+    this.time = Math.random() * 1000;
+  }
+  
+  reset(canvasWidth, canvasHeight) {
+    // More conservative positioning - keep images closer to visible area
+    // Allow some offscreen spawning but not too much
+    const maxOffscreenDistance = Math.min(50, this.baseSize || 50); // Limit based on image size
+    this.x = Math.random() * (canvasWidth + maxOffscreenDistance * 2) - maxOffscreenDistance;
+    this.y = -50 - Math.random() * 200;
+    this.vx = (Math.random() - 0.5) * 1.5; // Faster horizontal movement
+    this.vy = 3 + Math.random() * 4; // Much faster falling speed
+    this.canvasWidth = canvasWidth;
+    this.canvasHeight = canvasHeight;
+    this.contrail = []; // Clear contrail on reset
+  }
+  
+  update() {
+    this.time += 0.016;
+    
+    // Only add to contrail based on configured frequency
+    if (this.contrail.length === 0 || this.time % this.contrailUpdateFrequency < 0.016) {
+      this.contrail.push({
+        x: this.x,
+        y: this.y,
+        rotation: this.rotation,
+        opacity: this.opacity,
+        age: 0,
+        iterations: 0 // Track how many update cycles this point has lived
+      });
+    }
+    
+    // Limit contrail length
+    if (this.contrail.length > this.maxContrailLength) {
+      this.contrail.shift();
+    }
+    
+    // Update contrail points and remove expired ones
+    this.contrail = this.contrail.filter(point => {
+      point.iterations += 1;
+      point.age = point.iterations / this.contrailIterations; // Age based on iterations
+      return point.iterations < this.contrailIterations; // Remove when iterations exceeded
+    });
+    
+    // Update position
+    this.x += this.vx;
+    this.y += this.vy;
+    
+    // Add natural drift/sway
+    this.x += Math.sin(this.time * this.driftSpeed + this.driftOffset) * 1.2;
+    
+    // Update rotation
+    this.rotation += this.rotationSpeed;
+    
+    // Reset if fallen off screen
+    if (this.y > this.canvasHeight + 100 || this.x < -150 || this.x > this.canvasWidth + 150) {
+      this.reset(this.canvasWidth, this.canvasHeight);
+    }
+  }
+  
+  getRenderDimensions() {
+    if (this.loaded && !this.loadError) {
+      // Calculate dimensions maintaining aspect ratio
+      if (this.aspectRatio > 1) {
+        // Wider than tall
+        return {
+          width: this.baseSize,
+          height: this.baseSize / this.aspectRatio
+        };
+      } else {
+        // Taller than wide
+        return {
+          width: this.baseSize * this.aspectRatio,
+          height: this.baseSize
+        };
+      }
+    }
+    // Fallback for loading/error state
+    return {
+      width: this.baseSize,
+      height: this.baseSize
+    };
+  }
+  
+  drawImageWithContrailHandling(ctx, x, y, width, height, rotation, opacity) {
+    ctx.save();
+    
+    // Move to position and apply rotation
+    ctx.translate(x + width/2, y + height/2);
+    ctx.rotate(rotation);
+    
+    // Apply opacity
+    ctx.globalAlpha = opacity;
+    
+    if (this.loaded && !this.loadError) {
+      // Draw the image directly - remove expensive pixel analysis for contrails
+      ctx.drawImage(this.image, -width/2, -height/2, width, height);
+    } else {
+      // Draw placeholder
+      ctx.fillStyle = this.loadError ? '#ef4444' : '#a855f7';
+      ctx.beginPath();
+      ctx.arc(0, 0, Math.min(width, height)/2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${Math.min(width, height)/4}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.fillText(this.loadError ? '!' : '?', 0, Math.min(width, height)/8);
+    }
+    
+    ctx.restore();
+  }
+  
+  draw(ctx) {
+    const dimensions = this.getRenderDimensions();
+    
+    // Draw contrail first (behind the main image)
+    this.contrail.forEach((point, index) => {
+      if (point.age < 1) {
+        const contrailOpacity = this.opacity * (1 - point.age) * this.contrailOpacityMultiplier;
+        if (contrailOpacity > 0.01) { // Only draw if opacity is significant
+          this.drawImageWithContrailHandling(
+            ctx,
+            point.x,
+            point.y,
+            dimensions.width,
+            dimensions.height,
+            point.rotation,
+            contrailOpacity
+          );
+        }
+      }
+    });
+    
+    // Draw main image
+    this.drawImageWithContrailHandling(
+      ctx,
+      this.x,
+      this.y,
+      dimensions.width,
+      dimensions.height,
+      this.rotation,
+      this.opacity
+    );
+  }
+}
+
+class ThemeDetector {
+  static detectTheme() {
+    // First, check for data-theme attribute
+    const dataTheme = document.documentElement.dataset.theme;
+    if (dataTheme) {
+      return dataTheme;
+    }
+
+    // Fallback to explicit Astro theme classes
+    if (document.documentElement.classList.contains('dark')) {
+      return 'dark';
+    }
+    
+    if (document.documentElement.classList.contains('light')) {
+      return 'light';
+    }
+
+    // Next, check system preference
+    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDarkMode ? 'dark' : 'light';
+  }
+
+  static getBackgroundColor(theme) {
+    return theme === 'dark' ? 'rgba(0, 0, 0, 0.05)' : 'rgba(244, 244, 244, 0.05)';
+  }
+}
+
+class FallingImagesAnimation {
+  constructor(canvas, container, imageUrls, contrailOptions = {}) {
+    this.canvas = canvas;
+    this.container = container;
+    this.ctx = canvas.getContext("2d", { willReadFrequently: false });
+    this.imageUrls = imageUrls;
+    this.fallingImages = [];
+    this.rafId = null;
+    this.lastDrawTime = 0;
+    this.isMobile = this.checkIfMobile();
+    
+    // Initialize pseudorandom image selector
+    this.imageSelector = new PseudoRandomImageSelector(imageUrls);
+    
+    // Store contrail options to pass to images
+    this.contrailOptions = {
+      maxLength: contrailOptions.maxLength || 4,
+      iterations: contrailOptions.iterations || 20, // Default: 20 update cycles before disappearing
+      opacityMultiplier: contrailOptions.opacityMultiplier || 0.4,
+      updateFrequency: contrailOptions.updateFrequency || 0.15
+    };
+    
+    // Track current theme
+    this.currentTheme = ThemeDetector.detectTheme();
+    this.backgroundColor = ThemeDetector.getBackgroundColor(this.currentTheme);
+    
+    // Adjust number of images based on screen size and device
+    this.maxImages = this.isMobile ? 6 : 12; // Further reduced for better performance
+    
+    this.setupCanvas();
+    this.createFallingImages();
+    this.setupResizeObserver();
+    this.animate();
+  }
+  
+  checkIfMobile() {
+    return window.innerWidth < 768;
+  }
+  
+  setupCanvas() {
+    const { clientWidth: width, clientHeight: height } = this.container;
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width = width * dpr;
+    this.canvas.height = height * dpr;
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
+    this.ctx.scale(dpr, dpr);
+  }
+  
+  createFallingImages() {
+    const { clientWidth: width, clientHeight: height } = this.container;
+    
+    this.fallingImages = [];
+    
+    // Create falling images using pseudorandom selection
+    for (let i = 0; i < this.maxImages; i++) {
+      // Use pseudorandom selector instead of pure random
+      const selectedImageUrl = this.imageSelector.getNextImage();
+      if (selectedImageUrl) {
+        const fallingImage = new FallingImage(selectedImageUrl, width, height, this.contrailOptions);
+        
+        // Stagger the initial positions so they don't all start at once
+        fallingImage.y = -Math.random() * height * 2;
+        
+        this.fallingImages.push(fallingImage);
+      }
+    }
+  }
+  
+  setupResizeObserver() {
+    this.resizeObserver = new ResizeObserver(() => {
+      // Check if mobile status changed
+      const wasMobile = this.isMobile;
+      this.isMobile = this.checkIfMobile();
+      
+      // Update max images if mobile status changed
+      if (wasMobile !== this.isMobile) {
+        this.maxImages = this.isMobile ? 6 : 12;
+      }
+      
+      this.setupCanvas();
+      
+      // Update canvas dimensions for existing images
+      const { clientWidth: width, clientHeight: height } = this.container;
+      this.fallingImages.forEach(img => {
+        img.canvasWidth = width;
+        img.canvasHeight = height;
+      });
+      
+      // Adjust number of images if needed
+      while (this.fallingImages.length > this.maxImages) {
+        this.fallingImages.pop();
+      }
+      
+      while (this.fallingImages.length < this.maxImages) {
+        // Use pseudorandom selector for new images
+        const selectedImageUrl = this.imageSelector.getNextImage();
+        if (selectedImageUrl) {
+          const fallingImage = new FallingImage(selectedImageUrl, width, height, this.contrailOptions);
+          this.fallingImages.push(fallingImage);
+        }
+      }
+    });
+    this.resizeObserver.observe(this.container);
+  }
+  
+  animate(timestamp) {
+    const elapsed = timestamp - this.lastDrawTime;
+    if (elapsed < 1000 / 60) { // 60 FPS target
+      this.rafId = requestAnimationFrame(this.animate.bind(this));
+      return;
+    }
+    
+    // Check and update theme less frequently
+    if (Math.random() < 0.02) { // Only check theme 2% of frames
+      const detectedTheme = ThemeDetector.detectTheme();
+      if (detectedTheme !== this.currentTheme) {
+        this.currentTheme = detectedTheme;
+        this.backgroundColor = ThemeDetector.getBackgroundColor(detectedTheme);
+      }
+    }
+    
+    const { clientWidth: width, clientHeight: height } = this.container;
+    
+    // Properly clear the entire canvas
+    this.ctx.clearRect(0, 0, width, height);
+    
+    // Optional: Add subtle background tint
+    this.ctx.fillStyle = this.backgroundColor;
+    this.ctx.fillRect(0, 0, width, height);
+    
+    // Update and draw all falling images
+    this.fallingImages.forEach(img => {
+      img.update();
+      img.draw(this.ctx);
+    });
+    
+    this.lastDrawTime = timestamp;
+    this.rafId = requestAnimationFrame(this.animate.bind(this));
+  }
+  
+  cleanup() {
+    this.resizeObserver.disconnect();
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+  }
+}
+
+// Initialize animation when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.querySelector("#falling-images-field");
+  const canvas = document.querySelector("#falling-canvas");
+
+  if (container instanceof HTMLElement && canvas instanceof HTMLCanvasElement) {
+    console.log('Initializing falling images animation with URLs:', imageUrls);
+    
+    // Contrail configuration - adjust these values to control contrail behavior
+    const contrailConfig = {
+      maxLength: 4,        // Maximum number of contrail points
+      iterations: 30,      // How many update cycles before a contrail point disappears (higher = longer contrails)
+      opacityMultiplier: 0.3, // Contrail opacity multiplier (0.1 = very faint, 1.0 = same as main image)
+      updateFrequency: 0.1    // Seconds between contrail points (lower = denser contrails)
+    };
+    
+    const animation = new FallingImagesAnimation(canvas, container, imageUrls, contrailConfig);
+
+    // Cleanup on page navigation
+    document.addEventListener("astro:before-preparation", () => {
+      animation.cleanup();
+    });
+  } else {
+    console.error('Could not find container or canvas elements');
+  }
+});
+
+// Also try immediate initialization in case DOM is already ready
+const container = document.querySelector("#falling-images-field");
+const canvas = document.querySelector("#falling-canvas");
+
+if (container instanceof HTMLElement && canvas instanceof HTMLCanvasElement) {
+  console.log('Immediate initialization of falling images animation');
+  
+  // Contrail configuration - adjust these values to control contrail behavior
+  const contrailConfig = {
+    maxLength: 4,        // Maximum number of contrail points
+    iterations: 30,      // How many update cycles before a contrail point disappears (higher = longer contrails)
+    opacityMultiplier: 0.3, // Contrail opacity multiplier (0.1 = very faint, 1.0 = same as main image)
+    updateFrequency: 0.1    // Seconds between contrail points (lower = denser contrails)
+  };
+  
+  const animation = new FallingImagesAnimation(canvas, container, imageUrls, contrailConfig);
+
+  // Cleanup on page navigation
+  document.addEventListener("astro:before-preparation", () => {
+    animation.cleanup();
+  });
+}
+</script>
+
+<style>
+  .absolute {
+    position: absolute;
+  }
+  .inset-0 {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+  .overflow-hidden {
+    overflow: hidden;
+  }
+</style>

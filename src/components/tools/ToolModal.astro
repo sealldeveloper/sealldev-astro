@@ -1,0 +1,642 @@
+---
+import { Icon } from "astro-icon/components";
+import { getCollection } from "astro:content";
+
+// Fetch all tools and categories at build time
+const allTools = await getCollection("tools");
+const allCategories = await getCollection("categories");
+
+// Convert the collections to JSON strings that can be embedded in the page
+const toolsJSON = JSON.stringify(
+  allTools.map(tool => ({
+    slug: tool.slug,
+    ...tool.data
+  }))
+);
+
+const categoriesJSON = JSON.stringify(
+  allCategories.map(category => ({
+    name: category.data.name,
+    icon: category.data.icon,
+    color: category.data.color,
+    description: category.data.description
+  }))
+);
+
+// List of specific icons needed for the modal
+const iconList = [
+  "mdi:web",
+  "mdi:github",
+  "mdi:file-document",
+  "mdi:microsoft-windows",
+  "mdi:apple",
+  "mdi:linux",
+  "mdi:android",
+  "mdi:apple-ios",
+  "mdi:console", 
+  "mdi:docker",
+  "mdi:laptop",
+  "mdi:wrench",
+  "mdi:close"
+];
+---
+
+<!-- Tool Modal Component -->
+<div id="tool-modal" class="fixed inset-0 z-50 hidden overflow-y-auto overflow-x-hidden p-4">
+  <div class="relative flex min-h-full items-center justify-center">
+    <!-- Modal backdrop -->
+    <div class="fixed inset-0 bg-black" id="modal-backdrop"></div>
+    
+    <!-- Modal content -->
+    <div id="modal-content" class="relative w-full max-w-2xl rounded-lg border border-border bg-background shadow-xl">
+      <!-- Modal header -->
+      <div class="flex items-start justify-between rounded-t border-b border-border p-4">
+        <div class="flex items-center gap-3">
+          <div id="modal-logo" class="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-background-offset flex items-center justify-center">
+            <!-- Logo image or icon will be inserted here -->
+          </div>
+          <h3 id="modal-title" class="text-xl font-bold text-text"></h3>
+        </div>
+        <button type="button" id="close-modal" class="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm hover:bg-background-offset">
+          <span class="sr-only">Close modal</span>
+          <Icon name="mdi:close" class="size-5" />
+        </button>
+      </div>
+      
+      <!-- Modal body -->
+      <div class="space-y-4 p-4">
+        <!-- Description -->
+        <div>
+          <h4 class="mb-2 text-lg font-medium">Description</h4>
+          <p id="modal-description" class="text-text-offset"></p>
+        </div>
+        
+        <!-- Categories -->
+        <div>
+          <h4 class="mb-2 text-lg font-medium">Categories</h4>
+          <div id="modal-categories" class="flex flex-wrap gap-2"></div>
+        </div>
+        
+        <!-- Tags -->
+        <div>
+          <h4 class="mb-2 text-lg font-medium">Tags</h4>
+          <div id="modal-tags" class="flex flex-wrap gap-2"></div>
+        </div>
+        
+        <!-- Platforms -->
+        <div>
+          <h4 class="mb-2 text-lg font-medium">Platforms</h4>
+          <div id="modal-platforms" class="flex flex-wrap gap-2"></div>
+        </div>
+        
+        <!-- Links -->
+        <div>
+          <h4 class="mb-2 text-lg font-medium">Links</h4>
+          <div id="modal-links" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+      
+      <!-- Modal footer -->
+      <div class="flex items-center space-x-2 rounded-b border-t border-border p-4">
+        <button type="button" id="close-modal-btn" class="rounded-lg border border-border bg-background-offset px-5 py-2.5 text-center text-sm font-medium hover:bg-background focus:outline-none">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pre-render all the icons that might be needed for cloning by JS -->
+<div id="prerendered-icons" class="hidden">
+  {iconList.map(iconName => (
+    <div class="icon-holder" data-icon-name={iconName}>
+      <Icon name={iconName} class="size-4" />
+    </div>
+  ))}
+</div>
+
+<script define:vars={{ toolsJSON, categoriesJSON }}>
+// Initialize the tools and categories data from the statically generated JSON
+window.toolsData = JSON.parse(toolsJSON);
+window.categoriesData = JSON.parse(categoriesJSON);
+
+// Create a lookup map for faster access to categories
+window.categoriesMap = {};
+window.categoriesData.forEach(category => {
+  const normalizedName = category.name.toLowerCase().replace(/\s+/g, '-');
+  window.categoriesMap[normalizedName] = category;
+});
+
+// Create a lookup map for tools
+window.toolsMap = {};
+window.toolsData.forEach(tool => {
+  // Store by slug (converted to lowercase for case-insensitive lookup)
+  window.toolsMap[tool.slug.toLowerCase()] = tool;
+  
+  // Also store by title if available
+  if (tool.title) {
+    const titleSlug = tool.title.toLowerCase().replace(/\s+/g, '-');
+    window.toolsMap[titleSlug] = tool;
+  }
+});
+
+console.log(`Loaded ${window.toolsData.length} tools from collection`);
+console.log(`Loaded ${window.categoriesData.length} categories from collection`);
+
+document.addEventListener("DOMContentLoaded", function() {
+  // Get all tool cards with the modal trigger attribute
+  const toolCards = document.querySelectorAll("[data-tool-modal-trigger]");
+  const modal = document.getElementById("tool-modal");
+  const modalBackdrop = document.getElementById("modal-backdrop");
+  const closeModalBtn = document.getElementById("close-modal-btn");
+  const closeModalX = document.getElementById("close-modal");
+  
+  // Better icon handling function that uses pre-rendered SVG icons
+  function createIconElement(iconName, size = "size-4") {
+    // Create a span to hold the icon
+    const container = document.createElement("span");
+    container.className = size;
+    
+    try {
+      // Find our pre-rendered icon by name
+      const iconHolder = document.querySelector(`#prerendered-icons .icon-holder[data-icon-name="${iconName}"]`);
+      
+      if (iconHolder) {
+        // Clone the SVG icon
+        const svg = iconHolder.querySelector('svg');
+        if (svg) {
+          const clonedSvg = svg.cloneNode(true);
+          container.appendChild(clonedSvg);
+          return container;
+        }
+      }
+      
+      // If we get here, we need to create the icon on the fly
+      // This requires that the iconName is in the form "mdi:xyz"
+      if (iconName.includes(':')) {
+        const iconElement = document.createElement('span');
+        
+        // Set some classes to style it like an SVG icon
+        iconElement.className = 'inline-flex items-center justify-center';
+        
+        // Define emoji fallbacks for common icons
+        const iconEmojis = {
+          "mdi:web": "🌐",
+          "mdi:github": "📂",
+          "mdi:file-document": "📄",
+          "mdi:microsoft-windows": "🪟",
+          "mdi:apple": "🍎",
+          "mdi:linux": "🐧",
+          "mdi:android": "📱",
+          "mdi:apple-ios": "📱",
+          "mdi:console": "💻",
+          "mdi:docker": "🐳",
+          "mdi:laptop": "💻",
+          "mdi:wrench": "🔧"
+        };
+        
+        // Use emoji fallback
+        iconElement.textContent = iconEmojis[iconName] || "🔧";
+        container.appendChild(iconElement);
+      }
+    } catch (e) {
+      console.error(`Error creating icon for ${iconName}:`, e);
+      // Add a fallback text/emoji
+      container.textContent = '🔧';
+    }
+    
+    return container;
+  }
+  
+  // Function to get platform icon and name
+  function getPlatformInfo(platform) {
+    const platforms = {
+      "windows": { name: "Windows", icon: "mdi:microsoft-windows" },
+      "macos": { name: "macOS", icon: "mdi:apple" },
+      "linux": { name: "Linux", icon: "mdi:linux" },
+      "android": { name: "Android", icon: "mdi:android" },
+      "ios": { name: "iOS", icon: "mdi:apple-ios" },
+      "web": { name: "Web", icon: "mdi:web" },
+      "cli": { name: "CLI", icon: "mdi:console" },
+      "docker": { name: "Docker", icon: "mdi:docker" },
+      "multiplatform": { name: "Multi-platform", icon: "mdi:laptop" }
+    };
+    
+    return platforms[platform?.toLowerCase()] || { name: platform, icon: "mdi:laptop" };
+  }
+  
+  // Function to get category details
+  function getCategoryDetails(categoryName) {
+    // Normalize category name
+    const normalizedName = categoryName.toLowerCase().replace(/\s+/g, '-');
+    
+    // Check categories from the collection first
+    const category = window.categoriesMap[normalizedName];
+    
+    if (category) {
+      return {
+        color: category.color || "#a1a1aa",
+        icon: category.icon || null
+      };
+    }
+    
+    // Fallback if not found in categories collection
+    const fallbackColorMap = {
+      "web": "#3b82f6",
+      "pwn": "#ef4444",
+      "fullpwn": "#f97316",
+      "rev": "#6366f1",
+      "misc": "#a855f7",
+      "osint": "#06b6d4",
+      "ai": "#0ea5e9",
+      "network forensics": "#ec4899",
+      "windows forensics": "#8b5cf6",
+      "disk forensics": "#10b981",
+      "memory forensics": "#f59e0b",
+      "forensics": "#8b5cf6",
+      "network": "#16a34a",
+      "credential": "#7c3aed",
+      "stego": "#0d9488"
+    };
+    
+    const fallbackIconMap = {
+      "web": "🌐",
+      "pwn": "💥",
+      "fullpwn": "🔓",
+      "rev": "⚙️",
+      "misc": "🧩",
+      "osint": "🔍",
+      "ai": "🤖",
+      "network forensics": "📡",
+      "windows forensics": "🪟",
+      "disk forensics": "💽", 
+      "memory forensics": "🧠",
+      "forensics": "🔬",
+      "network": "🌐",
+      "credential": "🔐",
+      "stego": "🔍"
+    };
+    
+    return {
+      color: fallbackColorMap[normalizedName] || "#a1a1aa",
+      icon: fallbackIconMap[normalizedName] || null
+    };
+  }
+  
+  // Function to populate modal with tool data
+  function populateModal(toolData) {
+    // Set title
+    document.getElementById("modal-title").textContent = toolData.title;
+    
+    // Set logo or default icon
+    const logoContainer = document.getElementById("modal-logo");
+    logoContainer.innerHTML = "";
+    
+    if (toolData.logo) {
+      // Create image element for logo
+      const img = document.createElement("img");
+      if (toolData.logo.src){
+        img.src = toolData.logo.src;
+      } else {
+        img.src = toolData.logo;
+      }
+      
+      img.alt = `${toolData.title} logo`;
+      img.className = "h-full w-full object-contain";
+      logoContainer.appendChild(img);
+    } else {
+      // Use default icon
+      const iconContainer = document.createElement("div");
+      iconContainer.className = "flex items-center justify-center h-full w-full";
+      iconContainer.appendChild(createIconElement("mdi:wrench", "size-6"));
+      logoContainer.appendChild(iconContainer);
+    }
+    
+    // Set description
+    document.getElementById("modal-description").textContent = toolData.description || "No description available.";
+    
+    // Set categories
+    const categoriesContainer = document.getElementById("modal-categories");
+    categoriesContainer.innerHTML = "";
+    
+    if (toolData.categories && toolData.categories.length > 0) {
+      toolData.categories.forEach(category => {
+        const categoryDetails = getCategoryDetails(category);
+        
+        const span = document.createElement("span");
+        span.className = "rounded-full px-3 py-1 text-sm font-medium text-white flex items-center";
+        span.style.backgroundColor = categoryDetails.color;
+        
+        if (categoryDetails.icon) {
+          const iconSpan = document.createElement("span");
+          iconSpan.className = "mr-1";
+          iconSpan.textContent = categoryDetails.icon;
+          span.appendChild(iconSpan);
+        }
+        
+        span.appendChild(document.createTextNode(category));
+        categoriesContainer.appendChild(span);
+      });
+    } else {
+      categoriesContainer.textContent = "No categories specified.";
+    }
+    
+    // Set tags
+    const tagsContainer = document.getElementById("modal-tags");
+    tagsContainer.innerHTML = "";
+    
+    const allTags = [
+      ...(toolData.tags || []).map(tag => ({ name: tag, suggested: false })),
+      ...(toolData.suggestedTags || []).map(tag => ({ name: tag, suggested: true }))
+    ];
+    
+    if (allTags.length > 0) {
+      allTags.forEach(tagObj => {
+        const span = document.createElement("span");
+        if (tagObj.suggested) {
+          span.className = "border-primary/30 text-text-offset rounded-full border border-dashed px-2 py-1 text-sm";
+        } else {
+          span.className = "bg-primary text-white rounded-full px-2 py-1 text-sm";
+        }
+        span.textContent = `#${tagObj.name}`;
+        tagsContainer.appendChild(span);
+      });
+    } else {
+      tagsContainer.textContent = "No tags specified.";
+    }
+    
+    // Set platforms
+    const platformsContainer = document.getElementById("modal-platforms");
+    platformsContainer.innerHTML = "";
+    
+    if (toolData.platforms && toolData.platforms.length > 0) {
+      toolData.platforms.forEach(platform => {
+        const platformInfo = getPlatformInfo(platform);
+        
+        const span = document.createElement("span");
+        span.className = "bg-background-offset text-text rounded-lg px-3 py-1 text-sm flex items-center gap-2";
+        
+        // Add platform icon if we have it
+        span.appendChild(createIconElement(platformInfo.icon));
+        
+        const platformName = document.createElement("span");
+        platformName.textContent = platformInfo.name;
+        span.appendChild(platformName);
+        
+        platformsContainer.appendChild(span);
+      });
+    } else {
+      platformsContainer.textContent = "No platforms specified.";
+    }
+    
+    // Set links
+    const linksContainer = document.getElementById("modal-links");
+    linksContainer.innerHTML = "";
+    
+    const links = [];
+    if (toolData.url) links.push({ type: "Website", url: toolData.url, icon: "mdi:web" });
+    if (toolData.github) links.push({ type: "GitHub", url: toolData.github, icon: "mdi:github" });
+    if (toolData.documentation) links.push({ type: "Documentation", url: toolData.documentation, icon: "mdi:file-document" });
+    
+    if (links.length > 0) {
+      links.forEach(link => {
+        // Create a link similar to the card
+        let linkClass = "";
+        if (link.type === "Website") {
+          linkClass = "hover:bg-primary/90 flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm text-white transition-colors";
+        } else {
+          linkClass = "hover:bg-background flex items-center gap-1.5 rounded-lg border border-border bg-background-offset px-3 py-1.5 text-sm transition-colors";
+        }
+        
+        const a = document.createElement("a");
+        a.href = link.url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.className = linkClass;
+        
+        // Add icon
+        a.appendChild(createIconElement(link.icon, "size-3.5 mr-1"));
+        
+        // Add text
+        const linkText = document.createElement("span");
+        linkText.textContent = link.type;
+        a.appendChild(linkText);
+        
+        linksContainer.appendChild(a);
+      });
+    } else {
+      linksContainer.textContent = "No links available.";
+    }
+  }
+  
+  // Function to get tool data by slug
+  function getToolBySlug(slug) {
+    // Normalize slug
+    const normalizedSlug = slug.toLowerCase().replace(/\s+/g, '-');
+    
+    // Check exact match first
+    if (window.toolsMap[normalizedSlug]) {
+      return window.toolsMap[normalizedSlug];
+    }
+    
+    // Check direct lookup from entire data array if not found in map
+    const tool = window.toolsData.find(t => 
+      t.slug.toLowerCase() === normalizedSlug || 
+      (t.title && t.title.toLowerCase().replace(/\s+/g, '-') === normalizedSlug)
+    );
+    
+    if (tool) {
+      return tool;
+    }
+    
+    // Create placeholder if not found
+    console.warn(`Tool not found for slug: ${slug}, using placeholder`);
+    return {
+      title: slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-/g, ' '),
+      description: `Information about ${slug.replace(/-/g, ' ')}`,
+      categories: [],
+      tags: [],
+      platforms: []
+    };
+  }
+  
+  // Show the modal
+  function showModal() {
+    modal.classList.remove("hidden");
+    document.body.classList.add("overflow-hidden");
+  }
+  
+  // Hide the modal
+  function hideModal() {
+    modal.classList.add("hidden");
+    document.body.classList.remove("overflow-hidden");
+  }
+  
+  // Function to open tool modal
+  function openToolModal(toolSlug) {
+    const toolData = getToolBySlug(toolSlug);
+    populateModal(toolData);
+    showModal();
+  }
+  
+  // Make functions available globally
+  window.populateToolModal = populateModal;
+  window.showToolModal = showModal;
+  window.hideToolModal = hideModal;
+  window.openToolModal = openToolModal;
+  
+  // Add click handlers to tool cards
+  toolCards.forEach(card => {
+    card.addEventListener("click", function() {
+      const toolDataStr = this.getAttribute("data-tool-data");
+      if (toolDataStr) {
+        try {
+          const toolData = JSON.parse(toolDataStr);
+          populateModal(toolData);
+          showModal();
+        } catch (e) {
+          console.error("Error parsing tool data:", e);
+        }
+      }
+    });
+  });
+  
+  // Handle tool modal triggers from the writeup content using custom event
+  document.addEventListener('opentoolmodal', function(e) {
+    if (e.detail && e.detail.toolData) {
+      populateModal(e.detail.toolData);
+      showModal();
+    }
+  });
+  
+  // Close modal when clicking the X button
+  if (closeModalX) {
+    closeModalX.addEventListener("click", hideModal);
+  }
+  
+  // Close modal when clicking the close button
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener("click", hideModal);
+  }
+  
+  // Close modal when clicking outside the modal content
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener("click", function(e) {
+      if (e.target === this) {
+        hideModal();
+      }
+    });
+  }
+  
+  // Close modal on escape key press
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+      hideModal();
+    }
+  });
+});
+</script>
+<style>
+    /* Tool Modal Animations and Styling */
+ 
+ /* Animation for fading in the modal */
+ @keyframes modalFadeIn {
+   from { opacity: 0; }
+   to { opacity: 1; }
+ }
+ 
+ /* Animation for sliding in the modal content */
+ @keyframes modalSlideIn {
+   from { 
+     transform: translateY(20px);
+     opacity: 0;
+   }
+   to { 
+     transform: translateY(0);
+     opacity: 1;
+   }
+ }
+ 
+ /* Apply animations to modal elements */
+ #tool-modal:not(.hidden) {
+   animation: modalFadeIn 0.3s ease forwards;
+ }
+ 
+ #tool-modal:not(.hidden) > div > div:last-child {
+   animation: modalSlideIn 0.3s ease forwards;
+ }
+ 
+ #modal-backdrop:not(.hidden) {
+   animation: modalFadeIn 0.3s ease forwards;
+ }
+ 
+ /* Modal content styling */
+ #tool-modal .max-w-2xl {
+   width: 90%;
+   max-width: 42rem;
+ }
+ 
+ /* Platform tags styling */
+ #modal-platforms span {
+   display: inline-flex;
+   align-items: center;
+   gap: 0.5rem;
+ }
+ 
+ /* Links styling */
+ #modal-links a {
+   transition: all 0.2s ease;
+ }
+ 
+ #modal-links a:hover {
+   transform: translateY(-1px);
+   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+ }
+ 
+ /* Category tag styles */
+ #modal-categories span {
+   transition: all 0.2s ease;
+ }
+ 
+ #modal-categories span:hover {
+   filter: brightness(1.1);
+ }
+ 
+ /* Tag styles */
+ #modal-tags span {
+   transition: all 0.2s ease;
+ }
+ 
+ #modal-tags span:hover {
+   transform: translateY(-1px);
+ }
+ 
+ /* Close button styling */
+ #close-modal:hover {
+   background-color: var(--color-background-offset, rgba(255, 255, 255, 0.1));
+ }
+ 
+ #close-modal-btn:hover {
+   background-color: var(--color-background, #1a1a1a);
+ }
+ 
+ /* Mobile responsiveness */
+ @media (max-width: 640px) {
+   #tool-modal > div > div:last-child {
+     width: 95%;
+     margin: 0.5rem;
+   }
+   
+   #modal-categories, #modal-tags, #modal-platforms, #modal-links {
+     gap: 0.5rem;
+   }
+ }
+ 
+ #modal-backdrop {
+   opacity: 0.65 !important;
+ }
+ 
+ #modal-content {
+     background-color: var(--color-background, #1a1a1a);
+ }
+ </style>

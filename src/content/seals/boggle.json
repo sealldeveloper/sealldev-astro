@@ -1,0 +1,7 @@
+{
+  "name": "nginx",
+  "image": "./images/nginx_by_boggle.png",
+  "author": "CaptainBoggle",
+  "sealMarginTop": 10,
+  "flavourtext": "cos its a load balancer"
+}

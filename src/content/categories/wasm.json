@@ -1,0 +1,6 @@
+{
+    "name": "Wasm",
+    "icon": "🧩",
+    "description": "Tools for analyzing, decompiling, and working with WebAssembly (WASM) binaries and modules",
+    "color": "#7e22ce"
+}

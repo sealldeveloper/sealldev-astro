@@ -1,0 +1,6 @@
+{
+    "name": "Pwn",
+    "icon": "💥",
+    "description": "Exploitation of binary vulnerabilities to gain control of a program or system",
+    "color": "#ef4444"
+}

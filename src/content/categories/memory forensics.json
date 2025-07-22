@@ -1,0 +1,6 @@
+{
+    "name": "Memory Forensics",
+    "icon": "🧠",
+    "description": "Examination of system memory to detect malware, rootkits, and other advanced threats",
+    "color": "#f59e0b"
+}

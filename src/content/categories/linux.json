@@ -1,0 +1,6 @@
+{
+    "name": "Linux",
+    "icon": "🐧",
+    "description": "Tools specifically designed for Linux security assessment, privilege escalation, and system monitoring",
+    "color": "#f97316"
+}

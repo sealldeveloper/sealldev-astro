@@ -1,0 +1,1003 @@
+---
+import { getCollection } from "astro:content";
+import Header from "~/components/header.astro";
+import Footer from "~/components/footer.astro";
+import WriteupCard from "~/components/writeups/WriteupCard.astro";
+import ContentSection from "~/components/content-section.astro";
+import "~/styles/index.css";
+import LogoBlock from "~/components/logo-block.astro";
+import { Icon } from "astro-icon/components";
+import { Image } from "astro:assets";
+import { extractTagSuggestions } from "~/utils/auto-hyperlink";
+const { generator, site } = Astro;
+
+// Get all writeups and sort by date, filter out hidden ones
+const allWriteups = await getCollection("writeups");
+const writeups = allWriteups.filter((writeup) => !writeup.data.hidden);
+
+// First pass: Apply tags to writeups without tags
+writeups.forEach((writeup) => {
+  // If the writeup has no tags, extract and assign tags from content
+  if (!writeup.data.tags || writeup.data.tags.length === 0) {
+    const suggestedTags = extractTagSuggestions(writeup.body, []);
+
+    // Use up to 5 suggested tags
+    if (suggestedTags.length > 0) {
+      writeup.data.tags = suggestedTags.slice(0, 5);
+    } else {
+      // Initialize with empty array if no suggestions found
+      writeup.data.tags = [];
+    }
+  }
+});
+
+// Sort writeups by date after tag assignment
+const sortedWriteups = writeups.sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+
+// Collect all categories and CTFs
+const categories = [
+  ...new Set(writeups.map((post) => post.data.category).filter(Boolean)),
+];
+const ctfs = [
+  ...new Set(writeups.map((post) => post.data.ctf).filter(Boolean)),
+];
+
+// Get all sections from the sections collection with their icons/images
+const sectionCollection = await getCollection("sections");
+const sectionsMap = new Map();
+
+// Process sections from the section collection
+sectionCollection.forEach((section) => {
+  sectionsMap.set(section.data.name, {
+    icon: section.data.icon || null,
+    iconImage: section.data.iconImage || null,
+    color: section.data.color || null,
+  });
+});
+
+// Get unique sections from writeups
+const sectionNames = [
+  ...new Set(writeups.map((post) => post.data.section).filter(Boolean)),
+];
+
+// Create a formatted sections array with icon information
+const sections = sectionNames.map((name) => {
+  const sectionInfo = sectionsMap.get(name) || {
+    icon: null,
+    iconImage: null,
+    color: null,
+  };
+  return {
+    name,
+    icon: sectionInfo.icon,
+    iconImage: sectionInfo.iconImage,
+    color: sectionInfo.color,
+  };
+});
+
+// Create a searchable index for client-side search
+const searchIndex = sortedWriteups.map((writeup) => {
+  // Extract suggested tags for this writeup
+  const suggestedTags =
+    !writeup.data.tags || writeup.data.tags.length < 3
+      ? extractTagSuggestions(writeup.body, writeup.data.tags || []).slice(0, 3)
+      : [];
+
+  const searchableText = [
+    writeup.data.title,
+    writeup.data.description,
+    writeup.data.ctf,
+    writeup.data.category,
+    writeup.data.section,
+    (writeup.data.tags || []).join(" "),
+    writeup.body, // This includes the content for searching
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return {
+    slug: writeup.slug,
+    searchableText,
+    section: writeup.data.section || "",
+    tags: writeup.data.tags || [],
+    suggestedTags,
+    ctf: writeup.data.ctf || "",
+    category: writeup.data.category || "",
+  };
+});
+
+// Collect all unique tags
+const tagFrequencyMap = new Map();
+sortedWriteups.forEach((writeup) => {
+  // Add regular tags
+  (writeup.data.tags || []).forEach((tag) => {
+    tagFrequencyMap.set(tag, (tagFrequencyMap.get(tag) || 0) + 1);
+  });
+
+  // Extract and add suggested tags
+  if (!writeup.data.tags || writeup.data.tags.length < 3) {
+    const suggestedTags = extractTagSuggestions(
+      writeup.body,
+      writeup.data.tags || [],
+    ).slice(0, 3);
+    suggestedTags.forEach((tag) => {
+      // Suggested tags get a lower frequency weight (0.5) to rank them lower than regular tags
+      tagFrequencyMap.set(tag, (tagFrequencyMap.get(tag) || 0) + 0.5);
+    });
+  }
+});
+
+// Get tags sorted by frequency for UI
+const tags = [...tagFrequencyMap.entries()]
+  .sort((a, b) => b[1] - a[1])
+  .map((entry) => ({
+    name: entry[0],
+    frequency: Math.round(entry[1]),
+    isSuggested: entry[1] % 1 !== 0, // If frequency has a decimal part, it's a suggested tag
+  }));
+
+const description = "CTF writeups and technical guides.";
+const title = "Writeups | sealldev";
+---
+
+<!doctype html>
+<html lang="en" class="h-full motion-safe:scroll-smooth" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta content="#ec4899" data-react-helmet="true" name="theme-color" />
+    <meta name="generator" content={generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <meta property="og:title" content="Writeups | sealldev" />
+    <meta property="og:type" content="website" />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={site} />
+
+    <script is:inline>
+      const themeSaved = localStorage.getItem("theme");
+
+      if (themeSaved) {
+        document.documentElement.dataset.theme = themeSaved;
+      } else {
+        const prefersDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
+        document.documentElement.dataset.theme = prefersDark ? "dark" : "light";
+      }
+    </script>
+
+    <script
+      is:inline
+      src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"
+    ></script>
+  </head>
+
+  <body
+    class="h-full overflow-x-hidden bg-default text-default text-base selection:bg-secondary selection:text-white"
+  >
+    <Header />
+
+    <main>
+      <br />
+      <ContentSection title="Writeups" id="writeups">
+        <Fragment slot="lead">
+          <div class="mx-auto max-w-2xl">
+            <p class="text-center font-bold leading-relaxed tracking-tight">
+              A collection of <span class="text-primary"
+                >{writeups.length} posts</span
+              > containing
+              <span class="text-primary">Capture The Flag writeups</span>, <span class="text-primary">HackTheBox content</span>, and <span class="text-primary">other stuff</span>.
+            </p>
+            <div class="mt-2 text-center flex flex-col gap-2">              
+              <div class="text-text-offset text-xs block px-6 py-2 mx-auto max-w-lg leading-normal bg-background-offset/30 rounded border border-background-offset/50">
+                <span class="font-semibold">Search Tips:</span> Type to search by writeup name or description. Use <span class="text-primary font-medium">#tag</span> to search by specific tags. Matching text will be highlighted as you type if it matches text in the writeup cards.
+              </div>
+            </div>
+          </div>
+        </Fragment>
+
+        <div class="mt-8 w-full">
+          <!-- Global Search field with tag integration -->
+          <div class="mb-8">
+            <div class="relative mx-auto w-full max-w-xl">
+              <div
+                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"
+              >
+                <Icon name="mdi:magnify" class="text-text-offset size-5" />
+              </div>
+              <div
+                id="search-tags-container"
+                class="border-border bg-background-offset text-text flex min-h-[42px] flex-wrap items-center rounded-lg border p-2 pl-10 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary"
+              >
+                <!-- Selected tags will be added here as bubbles -->
+                <input
+                  type="text"
+                  id="search-input"
+                  class="m-0.5 h-[28px] min-w-[120px] flex-grow border-none bg-transparent p-1 text-sm focus:ring-0"
+                  placeholder="Search writeups content, titles, and tags..."
+                />
+              </div>
+              <div
+                id="search-status"
+                class="text-text-offset absolute right-0 top-0 flex hidden h-full items-center pr-4 text-sm"
+              >
+                Found <span id="result-count" class="mx-1 font-bold">0</span> results
+              </div>
+
+              <!-- Tag dropdown will appear here -->
+              <div
+                id="tag-dropdown"
+                class="border-border bg-background absolute z-[200] mt-1 hidden max-h-60 w-full overflow-y-auto rounded-lg border shadow-lg"
+                style="top: calc(100% + 2px); left: 0; background-color: var(--color-background-offset);"
+              >
+                <!-- Tag results will be added here -->
+              </div>
+            </div>
+            <script is:inline define:vars={{ searchIndex, writeups }}>
+              function countWords(text) {
+                return text.trim().split(/\s+/).length;
+              }
+
+              // Calculate total word count across all writeups
+              const totalWordCount = searchIndex.reduce((total, entry) => {
+                // Only count words from searchableText, which contains title, description, etc.
+                return total + countWords(entry.searchableText);
+              }, 0);
+
+              // Format the number with commas for readability
+              const formattedWordCount = totalWordCount.toLocaleString();
+              const formattedWriteupCount = writeups.length.toLocaleString();
+
+              // Update the placeholder text immediately
+              const searchInput = document.getElementById("search-input");
+              if (searchInput) {
+                searchInput.placeholder = `Searching ${formattedWordCount} words across ${formattedWriteupCount} writeups...`;
+              }
+            </script>
+          </div>
+
+          <!-- Section buttons -->
+          {
+            sections.length > 0 && (
+              <div class="mb-6">
+                <h3 class="text-text-offset mb-3 font-medium text-sm">
+                  Browse by Section
+                </h3>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    class="section-btn active hover:bg-primary/80 rounded-full bg-primary px-4 py-2 font-medium text-white transition-colors text-sm"
+                    data-section=""
+                  >
+                    All
+                  </button>
+                  {sections.map((section) => (
+                    <button
+                      class="section-btn bg-background-offset text-text hover:bg-background-alt flex items-center rounded-full px-4 py-2 font-medium transition-colors text-sm"
+                      data-section={section.name}
+                      style={
+                        section.color
+                          ? `background-color: ${section.color}20; color: ${section.color};`
+                          : ""
+                      }
+                    >
+                      {section.iconImage ? (
+                        <Image
+                          src={section.iconImage}
+                          alt={`${section.name} icon`}
+                          width={16}
+                          height={16}
+                          class="mr-1.5"
+                        />
+                      ) : section.icon ? (
+                        <span class="mr-1.5">{section.icon}</span>
+                      ) : null}
+                      {section.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          }
+
+          <!-- Advanced filters - hidden when not on "All" section -->
+          <div id="advanced-filters" class="mb-8 space-y-4">
+            <!-- Category and CTF filters -->
+            <div class="flex flex-wrap gap-4">
+              <div class="sm:flex-1">
+                <label
+                  for="category-filter"
+                  class="text-text-offset mb-2 block font-medium text-sm"
+                  >Filter by Category</label
+                >
+                <select
+                  id="category-filter"
+                  class="border-border bg-background-offset text-text w-full rounded border p-2"
+                >
+                  <option value="">All Categories</option>
+                  {
+                    categories.map((category) => (
+                      <option value={category}>{category}</option>
+                    ))
+                  }
+                </select>
+              </div>
+
+              <div class="sm:flex-1">
+                <label
+                  for="ctf-filter"
+                  class="text-text-offset mb-2 block font-medium text-sm"
+                  >Filter by CTF</label
+                >
+                <select
+                  id="ctf-filter"
+                  class="border-border bg-background-offset text-text w-full rounded border p-2"
+                >
+                  <option value="">All CTFs</option>
+                  {ctfs.map((ctf) => <option value={ctf}>{ctf}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <!-- Difficulty filter - shown only for non-CTF categories -->
+            <div id="difficulty-filter-container" class="hidden">
+              <h3 class="text-text-offset mb-3 font-medium text-sm">
+                Filter by Difficulty
+              </h3>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  class="difficulty-btn active hover:bg-primary/80 rounded-full bg-primary px-4 py-2 font-medium text-white transition-colors text-sm"
+                  data-difficulty=""
+                >
+                  All Difficulties
+                </button>
+                <button
+                  class="difficulty-btn bg-background-offset text-text hover:bg-background-alt flex items-center rounded-full px-4 py-2 font-medium transition-colors text-sm"
+                  data-difficulty="easy"
+                  style="background-color: rgba(74, 222, 128, 0.2); color: #4ade80;"
+                >
+                  <Icon name="mdi:shield-check-outline" class="size-4 mr-1.5" />
+                  Easy
+                </button>
+                <button
+                  class="difficulty-btn bg-background-offset text-text hover:bg-background-alt flex items-center rounded-full px-4 py-2 font-medium transition-colors text-sm"
+                  data-difficulty="medium"
+                  style="background-color: rgba(251, 146, 60, 0.2); color: #fb923c;"
+                >
+                  <Icon name="mdi:shield-alert-outline" class="size-4 mr-1.5" />
+                  Medium
+                </button>
+                <button
+                  class="difficulty-btn bg-background-offset text-text hover:bg-background-alt flex items-center rounded-full px-4 py-2 font-medium transition-colors text-sm"
+                  data-difficulty="hard"
+                  style="background-color: rgba(248, 113, 113, 0.2); color: #f87171;"
+                >
+                  <Icon name="mdi:shield-alert" class="size-4 mr-1.5" />
+                  Hard
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div
+            id="writeups-container"
+            class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3"
+          >
+            {sortedWriteups.map((writeup) => <WriteupCard writeup={writeup} />)}
+          </div>
+
+          <!-- No results message -->
+          <div id="no-results" class="hidden py-10 text-center">
+            <p class="text-text-offset font-bold text-xl">
+              No writeups found matching your filters.
+            </p>
+            <p class="text-text-offset mt-2">
+              Try adjusting your search terms, tags, or filters.
+            </p>
+            <button
+              id="reset-filters"
+              class="hover:bg-primary/80 mt-4 rounded-lg bg-primary px-4 py-2 text-white transition-colors"
+            >
+              Reset all filters
+            </button>
+          </div>
+        </div>
+      </ContentSection>
+    </main>
+
+    <Footer />
+
+    <script 
+      define:vars={{ 
+        searchIndex, 
+        sections,
+        tags 
+      }}
+    >
+      // Client-side filtering and searching
+      const searchInput = document.getElementById("search-input");
+      const searchTagsContainer = document.getElementById("search-tags-container");
+      const tagDropdown = document.getElementById("tag-dropdown");
+      const writeupCards = document.querySelectorAll("[data-writeup-card]");
+      const writeupContainer = document.getElementById("writeups-container");
+      const noResultsMessage = document.getElementById("no-results");
+      const searchStatus = document.getElementById("search-status");
+      const resetFiltersBtn = document.getElementById("reset-filters");
+      const categoryFilter = document.getElementById("category-filter");
+      const ctfFilter = document.getElementById("ctf-filter");
+      const sectionBtns = document.querySelectorAll(".section-btn");
+      const difficultyBtns = document.querySelectorAll(".difficulty-btn");
+      const difficultyFilterContainer = document.getElementById("difficulty-filter-container");
+      const advancedFilters = document.getElementById("advanced-filters");
+
+      let debounceTimeout;
+      let selectedTags = [];
+      let currentSection = "";
+      let currentDifficulty = "";
+
+      // Difficulty tags to match
+      const difficultyTags = ["easy", "medium", "hard"];
+
+      function debounce(func, wait) {
+        return function executedFunction(...args) {
+          const later = () => {
+            clearTimeout(debounceTimeout);
+            func(...args);
+          };
+
+          clearTimeout(debounceTimeout);
+          debounceTimeout = setTimeout(later, wait);
+        };
+      }
+
+      // Create tag bubble element with improved layout
+      function createTagBubble(tag) {
+        const bubble = document.createElement("div");
+        bubble.className =
+          "bg-primary text-white rounded-full px-2 py-1 text-sm flex items-center h-[28px] m-0.5";
+        bubble.innerHTML = `
+          <span class="mr-1">#${tag}</span>
+          <button class="tag-remove-btn flex-shrink-0" data-tag="${tag}" aria-label="Remove tag">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        `;
+
+        const removeBtn = bubble.querySelector(".tag-remove-btn");
+        removeBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          removeTag(tag);
+        });
+
+        return bubble;
+      }
+
+      // Add a tag to the search with improved positioning
+      function addTag(tag) {
+        if (!tag || selectedTags.includes(tag)) return;
+
+        selectedTags.push(tag);
+
+        // Add the tag bubble before the input
+        const bubble = createTagBubble(tag);
+        searchTagsContainer.insertBefore(bubble, searchInput);
+
+        // Clear input and hide dropdown
+        searchInput.value = "";
+        tagDropdown.classList.add("hidden");
+
+        // Force input to maintain minimum width
+        setTimeout(() => {
+          searchInput.style.width = "auto";
+          searchInput.focus();
+        }, 10);
+
+        applyFiltersAndSearch();
+      }
+
+      // Remove a tag
+      function removeTag(tag) {
+        selectedTags = selectedTags.filter((t) => t !== tag);
+
+        // Remove the tag bubble
+        const bubbles = searchTagsContainer.querySelectorAll(".tag-remove-btn");
+        bubbles.forEach((btn) => {
+          if (btn.getAttribute("data-tag") === tag) {
+            btn.closest("div").remove();
+          }
+        });
+
+        applyFiltersAndSearch();
+      }
+
+      // Show tag suggestions in dropdown
+      function showTagSuggestions(searchText) {
+        // Get tag suggestions based on input
+        const query = searchText.substring(1).toLowerCase(); // Remove # and lowercase
+        if (query.length === 0) {
+          tagDropdown.classList.add("hidden");
+          return;
+        }
+
+        // Find matching tags (up to 5)
+        const matchingTags = tags
+          .filter(
+            (tag) =>
+              tag.name.toLowerCase().includes(query) &&
+              !selectedTags.includes(tag.name),
+          )
+          .slice(0, 5)
+          .map((tag) => tag.name);
+
+        if (matchingTags.length === 0) {
+          tagDropdown.classList.add("hidden");
+          return;
+        }
+
+        // Position the dropdown correctly
+        const inputRect = searchTagsContainer.getBoundingClientRect();
+        tagDropdown.style.width = `${inputRect.width}px`;
+
+        // Create dropdown content
+        tagDropdown.innerHTML = "";
+        matchingTags.forEach((tag) => {
+          const item = document.createElement("div");
+          item.className = "px-4 py-2 hover:bg-background-alt cursor-pointer";
+          item.textContent = `#${tag}`;
+
+          item.addEventListener("click", () => {
+            addTag(tag);
+          });
+
+          tagDropdown.appendChild(item);
+        });
+
+        tagDropdown.classList.remove("hidden");
+      }
+
+      // Update UI when section selection changes
+      function updateSectionUI() {
+        sectionBtns.forEach((btn) => {
+          const section = btn.getAttribute("data-section");
+          const sectionObj = sections.find((s) => s.name === section);
+
+          if (section === currentSection) {
+            btn.classList.add("bg-primary", "text-white", "active");
+            btn.classList.remove(
+              "bg-background-offset",
+              "text-text",
+              "hover:bg-background-alt",
+            );
+
+            if (sectionObj && sectionObj.color) {
+              btn.style.backgroundColor = sectionObj.color;
+              btn.style.color = "white";
+            }
+          } else {
+            btn.classList.remove("bg-primary", "text-white", "active");
+
+            if (sectionObj && sectionObj.color) {
+              btn.style.backgroundColor = `${sectionObj.color}20`;
+              btn.style.color = sectionObj.color;
+            } else {
+              btn.classList.add(
+                "bg-background-offset",
+                "text-text",
+                "hover:bg-background-alt",
+              );
+            }
+          }
+        });
+
+        updateFilterVisibility();
+      }
+
+      // Update difficulty filter UI
+      function updateDifficultyUI() {
+        difficultyBtns.forEach((btn) => {
+          const difficulty = btn.getAttribute("data-difficulty");
+          
+          if (difficulty === currentDifficulty) {
+            btn.classList.add("active");
+            if (difficulty === "") {
+              btn.classList.add("bg-primary", "text-white");
+              btn.classList.remove("bg-background-offset", "text-text");
+            } else {
+              // Keep the colored styling for difficulty buttons when active
+              btn.style.fontWeight = "600";
+            }
+          } else {
+            btn.classList.remove("active");
+            if (difficulty === "") {
+              btn.classList.remove("bg-primary", "text-white");
+              btn.classList.add("bg-background-offset", "text-text");
+            } else {
+              btn.style.fontWeight = "500";
+            }
+          }
+        });
+      }
+
+      // Show/hide filters based on current section
+      function updateFilterVisibility() {
+        // Show category/CTF filters ONLY for "All" or exact match "CTFs"
+        const showCategoryFilters = currentSection === "" || currentSection === "CTFs";
+        
+        if (showCategoryFilters) {
+          // Show category/CTF filters for "All" or "CTFs" section
+          advancedFilters.classList.remove("hidden");
+          difficultyFilterContainer.classList.add("hidden");
+          
+          // Reset difficulty filter when hiding
+          currentDifficulty = "";
+          updateDifficultyUI();
+        } else {
+          // Show difficulty filter for ALL other sections
+          advancedFilters.classList.add("hidden");
+          difficultyFilterContainer.classList.remove("hidden");
+          
+          // Reset category and CTF filters when hiding
+          categoryFilter.value = "";
+          ctfFilter.value = "";
+        }
+      }
+
+      // Apply all filters and search with highlighting
+      function applyFiltersAndSearch() {
+        const selectedCategory = categoryFilter.value;
+        const selectedCTF = ctfFilter.value;
+        const searchTerm = searchInput.value.toLowerCase().trim();
+
+        // First, make sure writeup container is visible
+        writeupContainer.classList.remove("hidden");
+
+        // Remove any previous highlighting
+        document.querySelectorAll(".search-highlight").forEach((el) => {
+          const parent = el.parentNode;
+          parent.replaceChild(document.createTextNode(el.textContent), el);
+          parent.normalize();
+        });
+
+        let visibleCount = 0;
+
+        writeupCards.forEach((card) => {
+          const category = card.getAttribute("data-category");
+          const ctf = card.getAttribute("data-ctf");
+          const tagsAttr = card.getAttribute("data-tags") || "[]";
+          const suggestedTagsAttr = card.getAttribute("data-suggested-tags") || "[]";
+
+          // Parse JSON strings into arrays
+          const tags = tagsAttr ? JSON.parse(tagsAttr) : [];
+          const suggestedTags = suggestedTagsAttr ? JSON.parse(suggestedTagsAttr) : [];
+
+          // Combine both for matching
+          const allTags = [...tags, ...suggestedTags];
+
+          const slug = card.getAttribute("href")?.split("/").pop();
+
+          // Get section from searchIndex
+          const indexEntry = searchIndex.find((entry) => entry.slug === slug);
+          const section = indexEntry ? indexEntry.section : "";
+
+          const categoryMatch = !selectedCategory || category === selectedCategory;
+          const ctfMatch = !selectedCTF || ctf === selectedCTF;
+          const sectionMatch = !currentSection || section === currentSection;
+
+          // Difficulty matching - check if any tag matches the selected difficulty
+          let difficultyMatch = true;
+          if (currentDifficulty) {
+            difficultyMatch = allTags.some(tag => 
+              tag.toLowerCase() === currentDifficulty.toLowerCase()
+            );
+          }
+
+          // Tag matching - check both regular tags and suggested tags
+          const tagMatch =
+            selectedTags.length === 0 ||
+            selectedTags.some((tag) => allTags.includes(tag));
+
+          // Search match with highlighting
+          let searchMatch = true;
+          if (searchTerm) {
+            // Get the title and description elements for highlighting
+            const titleElement = card.querySelector("h2");
+            const descElement = card.querySelector("p.line-clamp-2, p.mb-4");
+
+            if (indexEntry) {
+              // Handle tag-specific searches (starting with #)
+              if (searchTerm.startsWith("#")) {
+                const tagSearch = searchTerm.substring(1).toLowerCase();
+                searchMatch = allTags.some((tag) =>
+                  tag.toLowerCase().includes(tagSearch),
+                );
+              } else {
+                // Regular search in all content
+                const allSearchableContent = `${indexEntry.searchableText} ${suggestedTags.join(" ")}`;
+                searchMatch = allSearchableContent.includes(searchTerm);
+
+                // If we have a match, highlight the text
+                if (searchMatch && searchTerm.length > 0) {
+                  // Check if the match is in the title
+                  const titleText = titleElement?.textContent?.toLowerCase() || "";
+                  if (titleText.includes(searchTerm) && titleElement) {
+                    highlightText(titleElement, searchTerm);
+                  }
+
+                  // Check if the match is in the description
+                  const descText = descElement?.textContent?.toLowerCase() || "";
+                  if (descText.includes(searchTerm) && descElement) {
+                    highlightText(descElement, searchTerm);
+                  }
+                }
+              }
+            } else {
+              searchMatch = false;
+            }
+          }
+
+          if (categoryMatch && ctfMatch && sectionMatch && difficultyMatch && tagMatch && searchMatch) {
+            card.classList.remove("hidden");
+            visibleCount++;
+          } else {
+            card.classList.add("hidden");
+          }
+        });
+
+        // Show/hide no results message
+        if (visibleCount === 0) {
+          writeupContainer.classList.add("hidden");
+          noResultsMessage.classList.remove("hidden");
+        } else {
+          writeupContainer.classList.remove("hidden");
+          noResultsMessage.classList.add("hidden");
+
+          // Show search status if searching
+          if (searchTerm) {
+            searchStatus.innerHTML = `Found <span id="result-count" class="font-bold mx-1">${visibleCount}</span> results`;
+            searchStatus.classList.remove("hidden");
+          } else {
+            searchStatus.classList.add("hidden");
+          }
+        }
+      }
+
+      // Helper function to highlight search term in an element
+      function highlightText(element, searchTerm) {
+        if (!element || !searchTerm || searchTerm === "") return;
+
+        const originalText = element.textContent;
+        const lowerOriginal = originalText.toLowerCase();
+        const lowerSearch = searchTerm.toLowerCase();
+
+        if (!lowerOriginal.includes(lowerSearch)) return;
+
+        // Clear element content
+        while (element.firstChild) {
+          element.removeChild(element.firstChild);
+        }
+
+        let lastIndex = 0;
+        let index = lowerOriginal.indexOf(lowerSearch);
+
+        while (index !== -1) {
+          // Add text before the match
+          if (index > lastIndex) {
+            element.appendChild(
+              document.createTextNode(originalText.substring(lastIndex, index)),
+            );
+          }
+
+          // Add highlighted match with inline styles
+          const highlightSpan = document.createElement("span");
+          highlightSpan.className = "search-highlight";
+          highlightSpan.style.backgroundColor = "rgba(236, 72, 153, 0.3)";
+          highlightSpan.style.color = "var(--color-primary, #ec4899)";
+          highlightSpan.style.fontWeight = "bold";
+          highlightSpan.style.padding = "0 2px";
+          highlightSpan.style.borderRadius = "3px";
+          highlightSpan.style.boxShadow = "0 0 0 1px rgba(236, 72, 153, 0.5)";
+          highlightSpan.textContent = originalText.substring(
+            index,
+            index + searchTerm.length,
+          );
+          element.appendChild(highlightSpan);
+
+          // Update last index
+          lastIndex = index + searchTerm.length;
+
+          // Find next match
+          index = lowerOriginal.indexOf(lowerSearch, lastIndex);
+        }
+
+        // Add any remaining text
+        if (lastIndex < originalText.length) {
+          element.appendChild(
+            document.createTextNode(originalText.substring(lastIndex)),
+          );
+        }
+      }
+
+      // Reset all filters
+      function resetFilters() {
+        searchInput.value = "";
+        categoryFilter.value = "";
+        ctfFilter.value = "";
+        selectedTags = [];
+        currentSection = "";
+        currentDifficulty = "";
+
+        // Remove all tag bubbles
+        const tagBubbles = searchTagsContainer
+          .querySelectorAll(".tag-remove-btn")
+          .forEach((btn) => {
+            btn.closest("div").remove();
+          });
+
+        updateSectionUI();
+        updateDifficultyUI();
+        updateFilterVisibility();
+        applyFiltersAndSearch();
+      }
+
+      // Add event listeners
+      searchInput?.addEventListener(
+        "input",
+        debounce(function () {
+          const value = searchInput.value.trim();
+
+          // Handle tag suggestions
+          if (value.startsWith("#")) {
+            showTagSuggestions(value);
+          } else {
+            tagDropdown.classList.add("hidden");
+            applyFiltersAndSearch();
+          }
+
+          // Adjust input width based on content
+          setTimeout(() => {
+            searchInput.style.width = "auto";
+          }, 10);
+        }, 300),
+      );
+
+      // Handle Enter key on search input
+      searchInput?.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          const value = searchInput.value.trim();
+
+          // If input starts with # and has content after it, add as tag
+          if (value.startsWith("#") && value.length > 1) {
+            e.preventDefault();
+            const tagName = value.substring(1); // Remove the #
+            addTag(tagName);
+          } else {
+            // Otherwise just search
+            applyFiltersAndSearch();
+          }
+        }
+      });
+
+      // Add event listeners
+      categoryFilter?.addEventListener("change", applyFiltersAndSearch);
+      ctfFilter?.addEventListener("change", applyFiltersAndSearch);
+      resetFiltersBtn?.addEventListener("click", resetFilters);
+
+      // Section button clicks
+      sectionBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          currentSection = btn.getAttribute("data-section");
+          updateSectionUI();
+          applyFiltersAndSearch();
+        });
+      });
+
+      // Difficulty button clicks
+      difficultyBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          currentDifficulty = btn.getAttribute("data-difficulty");
+          updateDifficultyUI();
+          applyFiltersAndSearch();
+        });
+      });
+
+      // Close tag dropdown when clicking outside
+      document.addEventListener("click", (e) => {
+        if (
+          !searchTagsContainer.contains(e.target) &&
+          !tagDropdown.contains(e.target)
+        ) {
+          tagDropdown.classList.add("hidden");
+        }
+      });
+
+      // Add this to handle resizing
+      window.addEventListener("resize", function () {
+        if (!tagDropdown.classList.contains("hidden")) {
+          const inputRect = searchTagsContainer.getBoundingClientRect();
+          tagDropdown.style.width = `${inputRect.width}px`;
+        }
+      });
+
+      // Ensure the header always has the fixed-header class
+      const header = document.getElementById("page-header");
+      if (header) {
+        header.classList.add("fixed-header");
+      }
+
+      // Initialize the UI on page load
+      updateSectionUI();
+      updateFilterVisibility();
+    </script>
+
+    <style>
+      /* Transitions for buttons */
+      .section-btn,
+      .tag-btn {
+        transition: all 0.2s ease-in-out;
+      }
+
+      /* Active states */
+      .section-btn.active,
+      .difficulty-btn.active {
+        font-weight: 600;
+      }
+
+      .tag-btn:hover,
+      .difficulty-btn:hover {
+        transform: translateY(-1px);
+      }
+
+      /* Search highlighting styles */
+      .search-highlight {
+        background-color: rgba(
+          236,
+          72,
+          153,
+          0.25
+        ); /* Primary color with transparency */
+        color: var(--color-primary, #ec4899);
+        font-weight: 700; /* Bold text */
+        border-radius: 0.125rem;
+        padding: 0 0.125rem;
+        box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.5); /* Outline effect */
+        position: relative;
+        text-shadow: 0 0 2px rgba(255, 255, 255, 0.5); /* Text glow for better contrast */
+        transition: all 0.2s ease;
+        display: inline;
+        white-space: pre-wrap;
+      }
+
+      /* Dark mode specific adjustments */
+      [data-theme="dark"] .search-highlight {
+        background-color: rgba(241, 126, 184, 0.3); /* Brighter in dark mode */
+        box-shadow: 0 0 0 1px rgba(241, 126, 184, 0.6); /* Stronger outline in dark mode */
+        text-shadow: 0 0 3px rgba(0, 0, 0, 0.7); /* Dark text shadow for better contrast */
+      }
+
+      /* Animation effect for highlights */
+      @keyframes highlight-pulse {
+        0% {
+          background-color: rgba(236, 72, 153, 0.2);
+        }
+        50% {
+          background-color: rgba(236, 72, 153, 0.4);
+        }
+        100% {
+          background-color: rgba(236, 72, 153, 0.2);
+        }
+      }
+
+      .search-highlight {
+        animation: highlight-pulse 2s ease-in-out infinite;
+      }
+    </style>
+  </body>
+</html>

@@ -1,0 +1,19 @@
+---
+import { Image } from "astro:assets";
+import logoImage from "~/assets/logo.png";
+
+// LogoBlock component
+export interface Props {
+  inClass: string;
+}
+
+const { inClass: inClass } = Astro.props;
+---
+
+<Image
+  src={logoImage}
+  loading="lazy"
+  alt="sealldev"
+  class={inClass}
+  id="logoblock"
+/>
