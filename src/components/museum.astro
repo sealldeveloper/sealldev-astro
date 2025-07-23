@@ -62,7 +62,7 @@ const sealsData = seals.map(seal => ({
         const seal = shuffled[(current + i) % shuffled.length];
         // Update seal image
         const imgContainer = plinthDiv.querySelector('.seal-img-container');
-        imgContainer.innerHTML = `<img src="${seal.image}" alt="${seal.name}" class="seal-img" />`;
+        imgContainer.innerHTML = `<img src="${seal.image}" alt="${seal.name}" class="seal-img" style="max-width: 150px !important; max-height: 150px !important; width: auto !important; height: auto !important; object-fit: contain !important; display: block !important;" />`;
         imgContainer.style.transform = `translateY(${typeof seal.sealMarginTop === "number" ? seal.sealMarginTop : 0}px)`;
         // Update engraving
         const engraving = plinthDiv.querySelector('.plinth-engraving');
@@ -147,8 +147,12 @@ const sealsData = seals.map(seal => ({
     height: 130px;
   }
   .seal-img {
-    width: 130px;
-    height: 130px;
+    max-width: 130px !important;
+    max-height: 130px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    display: block !important;
   }
   .plinth-img-container {
     width: 180px;
@@ -183,9 +187,12 @@ const sealsData = seals.map(seal => ({
   transition: transform 0.3s;
 }
 .seal-img {
-  width: 150px;
-  height: 150px;
-  object-fit: contain;
+  max-width: 150px !important;
+  max-height: 150px !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block !important;
 }
 .plinth-img-container {
   width: 210px;
