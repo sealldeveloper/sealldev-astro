@@ -7,7 +7,7 @@ const seals = await getCollection("seals");
 const imageUrls = seals.map(seal => seal.data.image.src);
 ---
 
-<div id={id} class="absolute inset-0 overflow-hidden">
+<div id={id} class="absolute inset-0 overflow-hidden z-0">
   <canvas id="falling-canvas"></canvas>
 </div>
 

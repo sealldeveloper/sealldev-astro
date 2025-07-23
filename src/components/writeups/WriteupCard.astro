@@ -104,17 +104,17 @@ const displayImage = writeup.data.image || null;
 >
   <div class="relative h-48 w-full bg-gradient-to-r from-primary to-secondary">
     <!-- Text positioning - properly centered when no image, top-left when image is present -->
-    <div class={`absolute text-white ${displayImage ? 'top-4 left-4 w-3/5' : 'inset-0 flex items-center justify-center'}`}>
+    <div class={`absolute text-white ${displayImage ? 'top-4 left-4 sm:w-3/5 w-2/5' : 'inset-0 flex items-center justify-center'}`}>
       {!displayImage ? (
         <div class="w-full text-center">
-          <span class="font-bold text-xl break-words">
+          <span class="font-bold sm:text-xl text-lg break-words">
             {`${writeup.data.title}${writeup.data.ctf ? " / " + writeup.data.ctf : ""}` ||
               writeup.data.ctf ||
               "CTF Writeup"}
           </span>
         </div>
       ) : (
-        <span class="font-bold text-xl break-words">
+        <span class="font-bold sm:text-xl text-lg break-words">
           {`${writeup.data.title}${writeup.data.ctf ? " / " + writeup.data.ctf : ""}` ||
             writeup.data.ctf ||
             "CTF Writeup"}

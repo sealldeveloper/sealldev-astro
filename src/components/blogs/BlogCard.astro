@@ -36,8 +36,8 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
       
       <!-- Blog title and meta overlay -->
       <div class="absolute inset-0 p-6 text-white z-10 flex flex-col justify-between">
-        <div class="pr-56"> <!-- Add right padding to avoid image overlap -->
-          <h2 class="font-bold text-2xl leading-tight break-words mb-4">
+        <div class="sm:pr-56 pr-40"> <!-- Add right padding to avoid image overlap -->
+          <h2 class="font-bold sm:text-xl text-lg leading-tight break-words mb-4">
             {blog.data.title}
           </h2>
           
@@ -50,7 +50,7 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
         </div>
         
         <!-- Meta information at bottom -->
-        <div class="flex items-center justify-between pr-56"> <!-- Add right padding here too -->
+        <div class="flex items-center justify-between sm:pr-56 pr-40"> <!-- Add right padding here too -->
           <div class="flex items-center gap-4 text-sm">
             <div class="flex items-center gap-1">
               <Icon name="mdi:calendar" class="size-4" />
@@ -91,7 +91,7 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
     <!-- Content section -->
     <div class="p-6">
       <!-- Description -->
-      <p class="text-text-offset line-clamp-3 text-base leading-relaxed">
+      <p class="text-text-offset line-clamp-3 leading-relaxed">
         {blog.data.description}
       </p>
     </div>

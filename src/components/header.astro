@@ -6,13 +6,13 @@ import type { NavItem } from "~/types";
 import StarTrail from "./StarTrail.astro";
 
 const navItems: Array<NavItem & { icon: string }> = [
-  { title: "", url: "/", icon: "mdi:home" },
-  { title: "", url: "/whoami", icon: "mdi:account" },
-  { title: "", url: "/ctfs", icon: "mdi:flag" },
-  { title: "", url: "/writeups", icon: "mdi:pencil" },
-  { title: "", url: "/blog", icon: "mdi:post" },
-  { title: "", url: "/museum", icon: "mdi:museum" },
-  { title: "", url: "/contact", icon: "mdi:email" },
+  { title: "Home", url: "/", icon: "mdi:home" },
+  { title: "whoami", url: "/whoami", icon: "mdi:account" },
+  { title: "CTFs", url: "/ctfs", icon: "mdi:flag" },
+  { title: "Writeups", url: "/writeups", icon: "mdi:pencil" },
+  { title: "Blog", url: "/blog", icon: "mdi:post" },
+  { title: "Museum", url: "/museum", icon: "mdi:museum" },
+  { title: "Contact", url: "/contact", icon: "mdi:email" },
 ];
 ---
 
@@ -51,7 +51,7 @@ const navItems: Array<NavItem & { icon: string }> = [
       <!-- <ThemeSwitcher /> -->
     </div>
     <div id="menu-modal" class="modal hidden" aria-hidden="true">
-      <div class="fixed inset-0 bg-default px-8 py-4 text-default">
+      <div class="fixed inset-0 bg-default px-8 py-4 text-default z-40">
         <div class="space-y-4" role="dialog" aria-modal="true">
           <header class="text-right">
             <button
