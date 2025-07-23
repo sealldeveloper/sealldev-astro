@@ -1,5 +1,6 @@
 ---
 import { Icon } from "astro-icon/components";
+import { Image } from "astro:assets";
 import ContentSection from "~/components/content-section.astro";
 import { Code } from 'astro:components';
 
@@ -37,7 +38,7 @@ const friends = [
                 rel="noopener noreferrer"
                 title={`Visit ${friend.name}'s website`}
               >
-                <img 
+                <Image
                   src={friend.image} 
                   alt={`${friend.name}'s web button`}
                   width="88" 
