@@ -2,6 +2,8 @@
 import { getCollection } from "astro:content";
 import ContentSection from "~/components/content-section.astro";
 import PlinthImg from "/src/assets/plinth.png";
+import { Image } from "astro:assets";
+
 const seals = await getCollection("seals");
 const perPage = 3;
 const sealsData = seals.map(seal => ({
@@ -23,7 +25,7 @@ const sealsData = seals.map(seal => ({
             <img src={seal.image} alt={seal.name} class="seal-img" />
           </div>
           <div class="plinth-img-container">
-            <img src={PlinthImg.src} alt="Stone plinth" class="plinth-img" />
+            <Image src={PlinthImg} alt="Stone plinth" class="plinth-img" loading="eager"/>
           </div>
         </div>
         <div class="plinth-engraving fade-target">
@@ -101,6 +103,8 @@ const sealsData = seals.map(seal => ({
   display: flex;
   justify-content: center;
   gap: 3.5rem;
+  flex-wrap: wrap;
+  padding: 0 1rem;
 }
 .seal-plinth {
   min-width: 270px;
@@ -109,6 +113,57 @@ const sealsData = seals.map(seal => ({
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+@media (max-width: 1024px) {
+  .seal-grid {
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .seal-grid {
+    gap: 1.5rem;
+    flex-direction: column;
+    align-items: center;
+  }
+  .seal-plinth {
+    min-width: 250px;
+    margin-top: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .seal-grid {
+    gap: 1rem;
+    padding: 0 0.5rem;
+  }
+  .seal-plinth {
+    min-width: 220px;
+    min-height: 380px;
+  }
+  .seal-img-container {
+    width: 130px;
+    height: 130px;
+  }
+  .seal-img {
+    width: 130px;
+    height: 130px;
+  }
+  .plinth-img-container {
+    width: 180px;
+  }
+  .plinth-img {
+    width: 180px;
+  }
+  .plinth-engraving {
+    width: 180px;
+    font-size: 1.05rem;
+    padding: 14px 8px 10px 8px;
+  }
+  .seal-name {
+    font-size: 1.15em;
+  }
 }
 .seal-stack {
   display: flex;

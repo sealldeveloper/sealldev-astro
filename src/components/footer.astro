@@ -1,5 +1,6 @@
 ---
 import { Icon } from "astro-icon/components";
+import { Image } from "astro:assets";
 import type { FooterLink, NavItem } from "~/types";
 import footerGif from "~/assets/footer.gif";
 
@@ -56,8 +57,8 @@ const currentYear = new Date().getFullYear();
   <div class="relative w-full max-w-4xl px-4 z-10">
     
     <div class="footer-gif-container relative mb-6">
-      <img 
-        src={footerGif.src} 
+      <Image
+        src={footerGif} 
         alt="Footer decoration"
         class="footer-gif"
         style={{
@@ -70,6 +71,7 @@ const currentYear = new Date().getFullYear();
           '--gif-rotation': '0deg',        /* Rotation angle */
           '--gif-scale': '1',              /* Scale factor */
         }}
+        loading="lazy"
 
       />
     </div>
@@ -305,8 +307,19 @@ class FooterGridAnimation {
     // Create a shuffled array of image URLs to ensure random distribution
     const shuffledImages = [...imageUrls];
     
-    // Create A LOT more images for a dense flowing column
-    const totalImages = Math.ceil((width + height) / this.cellSize * 5); // 5x more images
+    // Responsive image count - significantly fewer on mobile/tablet
+    let densityMultiplier;
+    if (width < 480) {
+      densityMultiplier = 1.5; // Very few on small mobile
+    } else if (width < 768) {
+      densityMultiplier = 2; // Fewer on mobile
+    } else if (width < 1024) {
+      densityMultiplier = 3; // Moderate on tablet
+    } else {
+      densityMultiplier = 5; // Full density on desktop
+    }
+    
+    const totalImages = Math.ceil((width + height) / this.cellSize * densityMultiplier);
     
     for (let i = 0; i < totalImages; i++) {
       // Pick random image from shuffled array
@@ -345,17 +358,23 @@ class FooterGridAnimation {
   
   setupResizeObserver() {
     this.resizeObserver = new ResizeObserver(() => {
+      const wasMobile = this.isMobile;
       this.isMobile = window.innerWidth < 768;
       this.cellSize = this.isMobile ? 60 : 80;
       this.setupCanvas();
-      this.createGrid();
+      // Only recreate grid if mobile state changed to avoid unnecessary work
+      if (wasMobile !== this.isMobile) {
+        this.createGrid();
+      }
     });
     this.resizeObserver.observe(this.container);
   }
   
   animate(timestamp) {
     const elapsed = timestamp - this.lastDrawTime;
-    if (elapsed < 1000 / 60) { // 60 FPS target
+    // Adaptive frame rate - lower on mobile for better performance
+    const targetFPS = this.isMobile ? 30 : 60;
+    if (elapsed < 1000 / targetFPS) {
       this.rafId = requestAnimationFrame(this.animate.bind(this));
       return;
     }
@@ -375,9 +394,14 @@ class FooterGridAnimation {
     this.ctx.fillStyle = this.backgroundColor;
     this.ctx.fillRect(0, 0, width, height);
     
-    // Update and draw all grid images
+    // Update and draw all grid images with culling optimization
     this.gridImages.forEach(gridImage => {
       gridImage.update(width, height);
+      // Skip drawing images that are far off screen for performance
+      if (gridImage.x < -this.cellSize * 2 || gridImage.y < -this.cellSize * 2 ||
+          gridImage.x > width + this.cellSize * 2 || gridImage.y > height + this.cellSize * 2) {
+        return; // Skip drawing this image
+      }
       gridImage.draw(this.ctx);
     });
     

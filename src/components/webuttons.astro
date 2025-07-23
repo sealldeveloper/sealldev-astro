@@ -48,16 +48,16 @@ const myButton = personalButtons[0];
                       width={88}
                       height={31}
                       class="pixelated"
-                      loading="lazy"
+                      loading="eager"
                     />
                   ) : (
-                    <img
+                    <Image
                       src={button.data.imageRemote} 
                       alt={`${button.data.name}'s web button`}
                       width="88" 
                       height="31"
                       class="pixelated"
-                      loading="lazy"
+                      loading="eager"
                     />
                   )}
                 </a>
@@ -89,14 +89,16 @@ const myButton = personalButtons[0];
                   width={88}
                   height={31}
                   class="pixelated"
+                  loading="lazy"
                 />
               ) : (
-                <img 
+                <Image 
                   src={myButton.data.imageRemote}
                   alt={`${myButton.data.name} web button`}
                   width="88" 
                   height="31"
                   class="pixelated"
+                  loading="lazy"
                 />
               )}
             </a>

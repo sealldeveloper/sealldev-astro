@@ -5,14 +5,15 @@ import logoImage from "~/assets/logo.png";
 // LogoBlock component
 export interface Props {
   inClass: string;
+  inLoading: string;
 }
 
-const { inClass: inClass } = Astro.props;
+const { inClass: inClass, inLoading: inLoading } = Astro.props;
 ---
 
 <Image
   src={logoImage}
-  loading="lazy"
+  loading={inLoading ? inLoading : "lazy"}
   alt="sealldev"
   class={inClass}
   id="logoblock"

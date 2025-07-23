@@ -293,6 +293,7 @@ const title = "Writeups | sealldev";
                           width={16}
                           height={16}
                           class="mr-1.5"
+                          loading="eager"
                         />
                       ) : section.icon ? (
                         <span class="mr-1.5">{section.icon}</span>
@@ -388,7 +389,7 @@ const title = "Writeups | sealldev";
             id="writeups-container"
             class="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3"
           >
-            {sortedWriteups.map((writeup) => <WriteupCard writeup={writeup} />)}
+            {sortedWriteups.map((writeup, index) => <WriteupCard writeup={writeup} index={index} />)}
           </div>
 
           <!-- No results message -->

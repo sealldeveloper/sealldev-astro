@@ -4,7 +4,10 @@ import { getEntry } from 'astro:content';
 import { Icon } from "astro-icon/components";
 import { extractTagSuggestions } from "~/utils/auto-hyperlink";
 
-const { writeup } = Astro.props;
+const { writeup, index = 0 } = Astro.props;
+
+// Determine if image should be eagerly loaded (first 6 posts: index 0-5)
+const shouldEagerLoad = index < 6;
 
 // Format date
 const formattedDate = new Intl.DateTimeFormat("en-US", {
@@ -126,6 +129,7 @@ const displayImage = writeup.data.image || null;
           src={displayImage}
           alt={writeup.data.title}
           class="h-full w-full object-cover"
+          loading={shouldEagerLoad ? "eager" : "lazy"}
         />
       </div>
     )}
@@ -149,6 +153,7 @@ const displayImage = writeup.data.image || null;
                 width={16}
                 height={16}
                 class="mr-1 inline-block"
+                loading={shouldEagerLoad ? "eager" : "lazy"}
               />
             ) : sectionTextIcon ? (
               <span class="mr-1">{sectionTextIcon}</span>

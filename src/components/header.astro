@@ -1,7 +1,7 @@
 ---
 import { Icon } from "astro-icon/components";
+import { Image } from "astro:assets";
 import LogoBlock from "~/components/logo-block.astro";
-import CursorContrail from "~/components/cursor-contrail.astro";
 import type { NavItem } from "~/types";
 import StarTrail from "./StarTrail.astro";
 
@@ -22,7 +22,7 @@ const navItems: Array<NavItem & { icon: string }> = [
 >
   <a class="flex items-center gap-3 hover:!text-default" href="/#">
     <h1 class="sr-only">sealldev</h1>
-    <LogoBlock inClass="size-10" />
+    <LogoBlock inLoading="eager" inClass="size-10" />
     <p>sealldev</p>
   </a>
   <div>
