@@ -1,4 +1,5 @@
 import { defineCollection, z } from "astro:content";
+import Webuttons from "~/components/webuttons.astro";
 
 export const seals = defineCollection({
   type: "data",
@@ -138,29 +139,20 @@ export const categories = defineCollection({
   }),
 });
 
-export const scrapbook = defineCollection({
+export const webbuttons = defineCollection({
   type: "data",
   schema: ({ image }) =>
     z.object({
-      title: z.string().min(1),
-      image: image(),
-      date: z.date().or(z.string()).optional(), // Support both Date objects and ISO strings
-      createdAt: z.date().or(z.string()).optional(), // Alternative date field
-      description: z.string().optional(),
-      location: z.string().optional(),
-      tags: z.array(z.string()).optional().default([]),
-      featured: z.boolean().optional().default(false),
+      name: z.string().min(1),
+      url: z.string().url(),
+      image: image().optional(),
+      imageRemote: z.string().optional(),
+      category: z.enum(['friends', 'personal']).default('friends'),
+      order: z.number().optional(), // For custom ordering
       hidden: z.boolean().optional().default(false),
-      photographer: z.string().optional(), // Who took the photo
-      camera: z.string().optional(), // Camera/device used
-      settings: z.object({
-        aperture: z.string().optional(),
-        shutter: z.string().optional(),
-        iso: z.number().optional(),
-        focalLength: z.string().optional(),
-      }).optional(), // Camera settings for photography enthusiasts
     }),
 });
+
 
 export const collections = {
   seals,
@@ -171,5 +163,5 @@ export const collections = {
   sections,
   tools,
   categories,
-  scrapbook
+  webbuttons
 };

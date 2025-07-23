@@ -1,0 +1,7 @@
+{
+  "name": "cats.fish",
+  "url": "https://cats.fish/",
+  "image": "./images/catsfish.png",
+  "category": "friends",
+  "order": 6
+}

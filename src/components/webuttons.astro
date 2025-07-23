@@ -1,82 +1,114 @@
 ---
 import { Icon } from "astro-icon/components";
 import { Image } from "astro:assets";
+import { getCollection } from "astro:content";
 import ContentSection from "~/components/content-section.astro";
 import { Code } from 'astro:components';
 
-// Friends data with image paths
-const friends = [
-  { name: "sclux7", url: "https://sclux7.world/", image: "/src/assets/88x31/sclux7.gif" },
-  { name: "h4rl", url: "https://h4rl.dev/", image: "/src/assets/88x31/h4rl.png" },
-  { name: "izrid", url: "https://izrid.github.io/", image: "/src/assets/88x31/izrid.gif" },
-  { name: "eljayright", url: "https://eljayright.dev/", image: "/src/assets/88x31/eljayright.png" },
-  { name: "bellesaurus", url: "https://bellesaurus.github.io/", image: "/src/assets/88x31/bellesaurus.gif" },
-  { name: "cats.fish", url: "https://cats.fish/", image: "/src/assets/88x31/catsfish.png" },
-  { name: "snowrat", url: "https://iamsandra.me/", image: "/src/assets/88x31/snowrat.gif" },
-  { name: "warlocksmurf", url: "https://warlocksmurf.github.io/", image: "/src/assets/88x31/warlocksmurf.gif" },
-  { name: "shak", url: "https://www.linkedin.com/in/tenzin-shakya-82bb68259/", image: "/src/assets/88x31/shak.png" },
-  { name: "nullablevoid", url: "https://nullablevo.id.au/", image: "https://nullablevo.id.au/images/button.png"}
-];
+// Get web buttons from collection
+const allWebButtons = await getCollection('webbuttons');
+
+// Filter and sort buttons
+const friendsButtons = allWebButtons
+  .filter(button => !button.data.hidden && button.data.category === 'friends')
+  .sort((a, b) => (a.data.order || 999) - (b.data.order || 999));
+
+const personalButtons = allWebButtons
+  .filter(button => !button.data.hidden && button.data.category === 'personal')
+  .sort((a, b) => (a.data.order || 999) - (b.data.order || 999));
+
+// Get the personal button for the code example (assuming there's only one)
+const myButton = personalButtons[0];
 ---
 
 <ContentSection title="Web Buttons" id="webuttons" altBackground={true}>
   <Fragment slot="lead">
     <div class="mx-auto max-w-6xl">
       <!-- Friends Web Buttons -->
-      <div class="bg-slate-800/30 rounded-xl p-8 border border-slate-700/50 mb-8">
-        <h3 class="text-xl font-bold text-primary mb-6 text-center flex items-center justify-center gap-2">
-          <Icon name="mdi:account-group" class="size-6" />
-          Friends
-        </h3>
-        <div class="flex justify-center">
-          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-4xl">
-            {friends.map((friend) => (
-              <a 
-                href={friend.url} 
-                class="webbutton block hover:scale-105 transition-transform duration-200"
-                target="_blank"
-                rel="noopener noreferrer"
-                title={`Visit ${friend.name}'s website`}
-              >
-                <Image
-                  src={friend.image} 
-                  alt={`${friend.name}'s web button`}
+      {friendsButtons.length > 0 && (
+        <div class="bg-slate-800/30 rounded-xl p-8 border border-slate-700/50 mb-8">
+          <h3 class="text-xl font-bold text-primary mb-6 text-center flex items-center justify-center gap-2">
+            <Icon name="mdi:account-group" class="size-6" />
+            Friends
+          </h3>
+          <div class="flex justify-center">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-4xl">
+              {friendsButtons.map((button) => (
+                <a 
+                  href={button.data.url} 
+                  class="webbutton block hover:scale-105 transition-transform duration-200"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Visit ${button.data.name}'s website`}
+                >
+                  {button.data.image ? (
+                    <Image
+                      src={button.data.image} 
+                      alt={`${button.data.name}'s web button`}
+                      width={88}
+                      height={31}
+                      class="pixelated"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <img
+                      src={button.data.imageRemote} 
+                      alt={`${button.data.name}'s web button`}
+                      width="88" 
+                      height="31"
+                      class="pixelated"
+                      loading="lazy"
+                    />
+                  )}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <!-- My Button Section -->
+      {myButton && (
+        <div class="bg-slate-800/30 rounded-xl p-8 border border-slate-700/50">
+          <h3 class="text-xl font-bold text-primary mb-6 text-center flex items-center justify-center gap-2">
+            <Icon name="mdi:account" class="size-6" />
+            My 88x31 Button
+          </h3>
+          
+          <div class="text-center mb-6">
+            <a 
+              href={myButton.data.url} 
+              class="webbutton inline-block hover:scale-105 transition-transform duration-200"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {myButton.data.image ? (
+                <Image 
+                  src={myButton.data.image}
+                  alt={`${myButton.data.name} web button`}
+                  width={88}
+                  height={31}
+                  class="pixelated"
+                />
+              ) : (
+                <img 
+                  src={myButton.data.imageRemote}
+                  alt={`${myButton.data.name} web button`}
                   width="88" 
                   height="31"
                   class="pixelated"
-                  loading="lazy"
                 />
-              </a>
-            ))}
+              )}
+            </a>
           </div>
+          <Code 
+            code={`<a href="${myButton.data.url}" target="_blank"><img src="${myButton.data.image ? myButton.data.url + myButton.data.image.src : myButton.data.imageRemote}" width="88" height="31"></a>`} 
+            lang="html" 
+            wrap 
+            class="p-4 rounded-lg"
+          />
         </div>
-      </div>
-
-      <!-- My Button Section -->
-      <div class="bg-slate-800/30 rounded-xl p-8 border border-slate-700/50">
-        <h3 class="text-xl font-bold text-primary mb-6 text-center flex items-center justify-center gap-2">
-          <Icon name="mdi:account" class="size-6" />
-          My 88x31 Button
-        </h3>
-        
-        <div class="text-center mb-6">
-          <a 
-            href="https://seall.dev/" 
-            class="webbutton inline-block hover:scale-105 transition-transform duration-200"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img 
-              src="/src/assets/88x31/sealldev.gif" 
-              alt="seall.dev web button"
-              width="88" 
-              height="31"
-              class="pixelated"
-            />
-          </a>
-        </div>
-          <Code code={`<a href="https://seall.dev/" target="_blank"><img src="https://seall.dev/src/assets/88x31/sealldev.gif" width="88" height="31"></a>`} lang="html" wrap class="p-4 rounded-lg"></Code>
-      </div>
+      )}
     </div>
   </Fragment>
 </ContentSection>
