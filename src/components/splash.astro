@@ -71,6 +71,176 @@ const navItems = [
   </div>
 </section>
 
+<script>
+class SplashOptimizer {
+  constructor() {
+    this.isMobile = window.innerWidth < 768;
+    this.isLowPowerMode = false;
+    this.rafId = null;
+    this.lastFrameTime = 0;
+    
+    // Detect low power mode
+    this.detectLowPowerMode();
+    
+    // Apply optimizations
+    this.applyOptimizations();
+    
+    // Setup resize observer
+    this.setupResizeObserver();
+    
+    // Monitor performance
+    this.monitorPerformance();
+  }
+  
+  detectLowPowerMode() {
+    // Check for various low power indicators
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    
+    this.isLowPowerMode = (
+      // Reduced data preference
+      navigator.connection?.saveData ||
+      // Slow connection
+      (connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g')) ||
+      // Battery API indicates low battery
+      (navigator.getBattery && navigator.getBattery().then(battery => battery.level < 0.2)) ||
+      // Device memory is low
+      (navigator.deviceMemory && navigator.deviceMemory < 2) ||
+      // Hardware concurrency is low
+      navigator.hardwareConcurrency < 4
+    );
+  }
+  
+  applyOptimizations() {
+    const astronaut = document.getElementById('astronaut');
+    const gradientText = document.querySelector('.gradient-text');
+    
+    if (this.isMobile || this.isLowPowerMode) {
+      // Apply mobile/low-power optimizations
+      if (astronaut) {
+        astronaut.style.animationDuration = this.isLowPowerMode ? '5s' : '3s';
+      }
+      
+      if (gradientText) {
+        // Update both animations for mobile/low-power
+        const gradientDuration = this.isLowPowerMode ? '10s' : '6s';
+        const pulseDuration = this.isLowPowerMode ? '5s' : '3.5s';
+        gradientText.style.animation = `gradient-move ${gradientDuration} ease-in-out infinite, pulsate ${pulseDuration} ease-in-out infinite`;
+        
+        // Simplify gradient on very low power devices
+        if (this.isLowPowerMode) {
+          gradientText.style.backgroundImage = 'linear-gradient(45deg, #8b5cf6, #d946ef)';
+          gradientText.style.willChange = 'auto';
+        }
+      }
+    }
+    
+    // Optimize based on frame rate
+    this.optimizeFrameRate();
+  }
+  
+  optimizeFrameRate() {
+    let frameCount = 0;
+    let lastFPSCheck = performance.now();
+    
+    const checkFPS = (timestamp) => {
+      frameCount++;
+      
+      if (timestamp - lastFPSCheck >= 1000) {
+        const fps = frameCount;
+        frameCount = 0;
+        lastFPSCheck = timestamp;
+        
+        // If FPS is consistently low, apply further optimizations
+        if (fps < 30) {
+          this.applyLowFPSOptimizations();
+        }
+      }
+      
+      this.rafId = requestAnimationFrame(checkFPS);
+    };
+    
+    // Only monitor FPS for first 5 seconds to avoid continuous overhead
+    this.rafId = requestAnimationFrame(checkFPS);
+    setTimeout(() => {
+      if (this.rafId) {
+        cancelAnimationFrame(this.rafId);
+        this.rafId = null;
+      }
+    }, 5000);
+  }
+  
+  applyLowFPSOptimizations() {
+    const astronaut = document.getElementById('astronaut');
+    const gradientText = document.querySelector('.gradient-text');
+    
+    if (astronaut) {
+      astronaut.style.animationDuration = '6s';
+      astronaut.style.willChange = 'auto'; // Remove will-change to save memory
+    }
+    
+    if (gradientText) {
+      gradientText.style.animation = 'gradient-move 12s ease-in-out infinite, pulsate 6s ease-in-out infinite';
+      gradientText.style.backgroundImage = 'linear-gradient(45deg, #8b5cf6, #d946ef)';
+      gradientText.style.willChange = 'auto';
+    }
+  }
+  
+  setupResizeObserver() {
+    const resizeObserver = new ResizeObserver(() => {
+      const wasMobile = this.isMobile;
+      this.isMobile = window.innerWidth < 768;
+      
+      // Only reapply optimizations if mobile state changed
+      if (wasMobile !== this.isMobile) {
+        this.applyOptimizations();
+      }
+    });
+    
+    resizeObserver.observe(document.body);
+  }
+  
+  monitorPerformance() {
+    // Use Intersection Observer to pause animations when splash is not visible
+    const splashSection = document.querySelector('section');
+    if (splashSection) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          const astronaut = document.getElementById('astronaut');
+          const gradientText = document.querySelector('.gradient-text');
+          
+          if (!entry.isIntersecting) {
+            // Pause animations when not visible
+            if (astronaut) astronaut.style.animationPlayState = 'paused';
+            if (gradientText) gradientText.style.animationPlayState = 'paused';
+          } else {
+            // Resume animations when visible
+            if (astronaut) astronaut.style.animationPlayState = 'running';
+            if (gradientText) gradientText.style.animationPlayState = 'running';
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      observer.observe(splashSection);
+    }
+  }
+}
+
+// Initialize optimizer when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Only initialize if not in reduced motion mode
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    new SplashOptimizer();
+  }
+});
+
+// Also try immediate initialization
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    new SplashOptimizer();
+  }
+}
+</script>
+
 <noscript>
   <style>
     #splash-bg-fallback {
@@ -101,8 +271,29 @@ const navItems = [
     }
   }
   
+  @keyframes pulsate {
+    0% {
+      filter: brightness(1) saturate(1);
+    }
+    25% {
+      filter: brightness(1.1) saturate(1.2);
+    }
+    50% {
+      filter: brightness(1.2) saturate(1.4);
+    }
+    75% {
+      filter: brightness(1.1) saturate(1.2);
+    }
+    100% {
+      filter: brightness(1) saturate(1);
+    }
+  }
+  
   #astronaut {
     animation: float linear 2.5s infinite alternate;
+    /* Enable GPU acceleration for better performance */
+    will-change: transform;
+    transform-style: preserve-3d;
   }
   
   .gradient-text {
@@ -123,23 +314,76 @@ const navItems = [
       #8b5cf6     /* violet-500 - loop back */
     );
     background-size: 400% 400%;
-    animation: gradient-move 4s ease-in-out infinite;
+    animation: 
+      gradient-move 4s ease-in-out infinite,
+      pulsate 2.5s ease-in-out infinite;
+    /* Optimize text rendering and enable GPU acceleration */
+    will-change: background-position, filter;
+    backface-visibility: hidden;
+    perspective: 1000px;
   }
   
+  /* Mobile optimizations - reduce animation complexity */
+  @media (max-width: 768px) {
+    #astronaut {
+      animation-duration: 3s; /* Slower animation on mobile */
+    }
+    
+    .gradient-text {
+      /* Simpler gradient on mobile for better performance */
+      background-image: linear-gradient(
+        45deg,
+        #8b5cf6,
+        #a855f7,
+        #d946ef,
+        #8b5cf6
+      );
+      animation: 
+        gradient-move 6s ease-in-out infinite,
+        pulsate 3.5s ease-in-out infinite; /* Slower pulsing on mobile */
+    }
+  }
+
+  @media (max-width: 480px) {
+    /* Further optimizations for small screens */
+    #astronaut {
+      animation-duration: 4s;
+    }
+    
+    .gradient-text {
+      animation: 
+        gradient-move 8s ease-in-out infinite,
+        pulsate 4s ease-in-out infinite; /* Even slower pulsing on small screens */
+      /* Reduce will-change on very small screens to save memory */
+      will-change: auto;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     #astronaut {
       @apply animate-none;
+      will-change: auto; /* Remove will-change when animations disabled */
     }
     .gradient-text {
       animation: none;
       background-image: linear-gradient(to bottom right, #8b5cf6, #a855f7, #d946ef);
       background-size: 100% 100%;
+      will-change: auto; /* Remove will-change when animations disabled */
     }
     :global(#starfield) {
       @apply hidden;
     }
     #splash-bg-fallback {
       @apply block;
+    }
+  }
+
+  /* Battery and performance optimizations */
+  @media (prefers-reduced-data: reduce) {
+    .gradient-text {
+      /* Simpler gradient for users on limited data */
+      background-image: linear-gradient(45deg, #8b5cf6, #d946ef);
+      animation-duration: 8s;
     }
   }
 </style>
