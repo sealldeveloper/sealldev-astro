@@ -101,7 +101,7 @@ The address should be selected based on the IP from this command (which retrieve
 ipconfig getifaddr en0
 ```
 
-> Note that doing this means the proxy will be available to everyone on your current WiFi network.
+> Note: Doing this means the proxy will be available to everyone on your current WiFi network, if you change local IP you need to update your Burp Suite and your VM's proxy IP (which you will see later on).
 
 Then get the certificate by pressing the 'Import / export certificate' button. Select 'Certificate in DER', then export. I save mine as `burpcert.der`
 
@@ -152,7 +152,6 @@ Modify your proxy settings to the following, except make sure to substitute your
 ![Settings for the WiFi proxy](images/rootedandroid/wifiproxysettings.png)
 
 Press 'OK' and then try to visit a website in the VM, it should be listed in Burp Suite.
-
 
 ![burp suite showing success from android traffic](images/rootedandroid/burpsuitesuccess.png)
 
