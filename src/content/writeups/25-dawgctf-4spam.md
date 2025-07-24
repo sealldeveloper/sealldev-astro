@@ -9,7 +9,7 @@ section: "CTFs"
 image: "images/25-dawgctf/icon.png"
 ---
 
-This challenge is based on the [4chan breach recently](https://www.reuters.com/technology/cybersecurity/notorious-internet-messageboard-4chan-has-been-hacked-posts-claim-2025-04-15/), there was some information about it sent by someone (one of the participants? Observers? Not to sure):
+This challenge is based on the [4chan breach recently](https://www.reuters.com/technology/cybersecurity/notorious-internet-messageboard-4chan-has-been-hacked-posts-claim-2025-04-15/), there was some information about it sent by someone (one of the participants? Observers? Not too sure):
 ![details.png](images/25-dawgctf/4spam/details.png)
 
 Visiting the web application... yup that's 4chan:
