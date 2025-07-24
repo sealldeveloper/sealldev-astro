@@ -22,7 +22,7 @@ Now start Android Studio, we can begin setting up the AVD.
 
 # Setting up the AVD
 
-AVD stands for Android Virtual Device and within Android Studio you can create them. They are fairly trivial to setup and are ran with `qemu`, there are also several well documented ways to root them.
+AVD stands for Android Virtual Device and within Android Studio you can create them. They are fairly trivial to setup and are executed with `qemu`, there are also several well documented ways to root them.
 
 When you start Android Studio you will start by downloading the Android SDK, just use the default installation location. For me this was `~/Library/Android/sdk`.
 
@@ -42,11 +42,11 @@ Look in the device options list for a Pixel 9, then press Next.
 
 The API should have a small 'Download' icon on it. Select it, accept the license and download it. Keep in mind the API version you select as you need it later to root the VM.
 
-> IMPORTANT NOTE: Try to select the API verison 1 older, there seems to be alot of bugs in the newest version (36 as of writing) in Frida and `objection`.
+> IMPORTANT NOTE: Try to select the API version 1 older, there seems to be a lot of bugs in the newest version (36 as of writing) in Frida and `objection`.
 
 ![api download option](images/rootedandroid/apis.png)
 
-Once downloaded we should have our AVD ready to go. Once you press 'Finish' we can press the 'Play' button and it will boot the VM.
+Once downloaded we should have our AVD ready to go. Once you press 'Finish' we can press the 'Play' button, and it will boot the VM.
 
 # Rooting the VM
 
@@ -68,7 +68,7 @@ It will cause the VM to likely hang, for me the VM always entirely hangs and And
 The way I handle this is probably not the best but seems to consistently work:
 - Use `pgrep qemu` to find the currently running VM
 - Use `kill -9 <PID>` to kill the AVD
-- On Android Studio in the 'Device Manager', right click the AVD (once it thinks its down) and select 'Cold Boot'
+- On Android Studio in the 'Device Manager', right-click the AVD (once it thinks its down) and select 'Cold Boot'
 
 This seems to work, and once its open we should be nearly done.
 
@@ -96,12 +96,12 @@ Firstly, open Burp Suite and change your proxy listener from 'Loopback only' to 
 
 ![burp settings](images/rootedandroid/burpsuiteproxy.png)
 
-The address should be selected based on the IP from this command (which retrieves your current local IP address from your WiFi or Ethernet connection, whatever is on `en0`):
+The address should be selected based on the IP from this command (which retrieves your current local IP address from your Wi-Fi or Ethernet connection, whatever is on `en0`):
 ```bash
 ipconfig getifaddr en0
 ```
 
-> Note: Doing this means the proxy will be available to everyone on your current WiFi network, if you change local IP you need to update your Burp Suite and your VM's proxy IP (which you will see later on).
+> Note: Doing this means the proxy will be available to everyone on your current Wi-Fi network, if you change local IP you need to update your Burp Suite and your VM's proxy IP (which you will see later on).
 
 Then get the certificate by pressing the 'Import / export certificate' button. Select 'Certificate in DER', then export. I save mine as `burpcert.der`
 
@@ -141,19 +141,19 @@ adb push Cert-Fixer.zip /sdcard/Download
 
 On the phone, open the Magisk app then go to 'Modules'. Press 'Install from Storage' then navigate to the Downloads folder and select 'Cert-Fixer.zip'.
 
-## Updating the WiFi to use the Proxy
+## Updating the Wi-Fi to use the Proxy
 
-Go to the settings, then WiFi, then press the 'Settings' icon on the WiFi connection. Press the small pencil icon in the top right to edit the connection. There should be a 'Proxy' option.
+Go to the settings, then Wi-Fi, then press the 'Settings' icon on the Wi-Fi connection. Press the small pencil icon in the top right to edit the connection. There should be a 'Proxy' option.
 
 > Sometimes you may see a T-Mobile SIM connection, just ignore it.
 
 Modify your proxy settings to the following, except make sure to substitute your 'Proxy hostname' for the IP you set in Burp Suite.
 
-![Settings for the WiFi proxy](images/rootedandroid/wifiproxysettings.png)
+![Settings for the Wi-Fi proxy](images/rootedandroid/wifiproxysettings.png)
 
 Press 'OK' and then try to visit a website in the VM, it should be listed in Burp Suite.
 
-![burp suite showing success from android traffic](images/rootedandroid/burpsuitesuccess.png)
+![Burp Suite showing success from android traffic](images/rootedandroid/burpsuitesuccess.png)
 
 # Setting up Frida and `objection` for SSL pinning removal
 
@@ -178,7 +178,7 @@ adb shell
 
 This downloads the relevant Android binaries for the server, pushes them to the AVD and then drops you into a shell to start them.
 
-All you need to do its the following:
+All you need to do it's the following:
 ```bash
 $ adb shell
 emu64a:/ $ su
@@ -186,7 +186,7 @@ emu64a:/ # /data/local/tmp/frida-server &
 [1] 12037
 ```
 
-This starts `frida-server` on your AVD, and the `&` is to make it a background task so you can continue using the terminal and it will continue to execute once you close the shell.
+This starts `frida-server` on your AVD, and the `&` is to make it a background task so you can continue using the terminal, and it will continue to execute once you close the shell.
 
 On the host you can list the available running applications with this:
 ```bash

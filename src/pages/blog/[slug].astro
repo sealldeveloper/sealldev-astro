@@ -4,9 +4,12 @@ import Header from "~/components/header.astro";
 import Footer from "~/components/footer.astro";
 import ContentSection from "~/components/content-section.astro";
 import { Icon } from "astro-icon/components";
+import ToolModal from "~/components/tools/ToolModal.astro";
 import { Image } from "astro:assets";
 
 import "~/styles/theme.css";
+// Import auto-hyperlink functions properly
+import autoHyperlinkUtils, { extractTagSuggestions } from "~/utils/auto-hyperlink";
 import 'katex/dist/katex.min.css';
 
 // Generate paths for all blogs
@@ -306,6 +309,8 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
     </main>
 
     <Footer />
+    <ToolModal/>
+
 
     <script>
       // Ensure the header always has the fixed-header class
@@ -334,6 +339,225 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
           }, 2000);
         });
       }
+    
+      // Import the auto-hyperlink function
+      import {
+        processAutoHyperlinks,
+        autoHyperlinkTerms,
+        toolSlugMap
+      } from "~/utils/auto-hyperlink";
+    
+      // Tool data cache to avoid multiple network requests
+      const toolDataCache = {};
+    
+      // Function to load tool data from the tools JSON database
+      async function loadToolData(toolSlug) {
+        // If we have cached data, use it
+        if (toolDataCache[toolSlug]) {
+          return toolDataCache[toolSlug];
+        }
+    
+        try {          
+          // This assumes you have a global window.toolsData object with all tool data
+          if (window.toolsData && window.toolsData[toolSlug]) {
+            toolDataCache[toolSlug] = window.toolsData[toolSlug];
+            return window.toolsData[toolSlug];
+          }
+          
+          // Still no data, create a placeholder
+          return {
+            title: toolSlug.charAt(0).toUpperCase() + toolSlug.slice(1),
+            description: `Information about ${toolSlug}`,
+            categories: [],
+            tags: [],
+            platforms: []
+          };
+        } catch (error) {
+          console.error(`Error loading tool data for ${toolSlug}:`, error);
+          return null;
+        }
+      }
+    
+      // Function to open tool modal directly
+      async function openToolModal(toolSlug) {
+        // Find the tool modal element
+        const modal = document.getElementById("tool-modal");
+        if (!modal) {
+          console.error("Tool modal element not found");
+          return;
+        }
+        
+        // Get tool data
+        const toolData = await loadToolData(toolSlug);
+        if (!toolData) {
+          console.error(`Could not load data for tool: ${toolSlug}`);
+          return;
+        }
+        
+        // If there's a function to populate the modal already defined, use it
+        if (typeof window.populateToolModal === 'function') {
+          window.populateToolModal(toolData);
+          
+          // Use existing show modal function
+          if (typeof window.showToolModal === 'function') {
+            window.showToolModal();
+          } else {
+            // Fallback - manually show the modal
+            modal.classList.remove("hidden");
+            document.body.classList.add("overflow-hidden");
+          }
+          return;
+        }
+        
+        // Otherwise, dispatch a custom event with the tool data
+        // The tool modal component will listen for this event
+        const event = new CustomEvent('opentoolmodal', {
+          detail: { toolData }
+        });
+        document.dispatchEvent(event);
+      }
+    
+
+      // Apply auto-hyperlinks to the content after it's rendered
+      document.addEventListener("DOMContentLoaded", () => {
+        // Process auto-hyperlinks in content
+        const contentContainer = document.getElementById("blog-content");
+    
+        if (contentContainer) {
+          // Find all the text nodes that might contain our terms
+          // We'll specifically target paragraphs, list items, headings, and blockquotes
+          const textContainers = contentContainer.querySelectorAll(
+            "p, li, h1, h2, h3, h4, h5, h6, blockquote",
+          );
+    
+          textContainers.forEach((container) => {
+            // Process each term in our dictionary
+            for (const [term, url] of Object.entries(autoHyperlinkTerms)) {
+              // Function to replace term in HTML while preserving markup
+              const replaceTermInHTML = (element) => {
+                // Don't process if we're inside a link already
+                if (element.tagName === "A" || element.closest("a")) return;
+    
+                // Don't process inside code or pre elements
+                if (
+                  element.tagName === "CODE" ||
+                  element.tagName === "PRE" ||
+                  element.closest("code") ||
+                  element.closest("pre")
+                )
+                  return;
+    
+                // Process element's childNodes
+                const childNodes = Array.from(element.childNodes);
+    
+                childNodes.forEach((node) => {
+                  // If it's a text node, process it
+                  if (node.nodeType === Node.TEXT_NODE) {
+                    // Case insensitive match with 'i' flag
+                    const regex = new RegExp(`\\b(${term})\\b`, "gi");
+                    if (regex.test(node.textContent)) {
+                      // Create wrapper for the new content
+                      const wrapper = document.createElement("span");
+    
+                      // Check if this is a tool that should open the modal
+                      if (url.startsWith("TOOL:")) {
+                        const toolSlug = url.replace("TOOL:", "");
+                        // Replace term with a span that will trigger the modal
+                        const newHTML = node.textContent.replace(
+                          regex,
+                          (match) =>
+                            `<span class="tool-modal-trigger cursor-pointer text-primary underline" data-tool-slug="${toolSlug}" title="Show details for ${term}">${match}</span>`,
+                        );
+                        wrapper.innerHTML = newHTML;
+                      } else {
+                        // Regular hyperlink
+                        const newHTML = node.textContent.replace(
+                          regex,
+                          (match) =>
+                            `<a href="${url}" class="auto-hyperlink" title="${term}">${match}</a>`,
+                        );
+                        wrapper.innerHTML = newHTML;
+                      }
+    
+                      // Replace the text node with our processed content
+                      const fragment = document.createDocumentFragment();
+                      while (wrapper.firstChild) {
+                        fragment.appendChild(wrapper.firstChild);
+                      }
+    
+                      node.parentNode.replaceChild(fragment, node);
+                    }
+                  }
+                  // If it's an element node, recurse (except for links, code, pre)
+                  else if (node.nodeType === Node.ELEMENT_NODE) {
+                    replaceTermInHTML(node);
+                  }
+                });
+              };
+    
+              // Process this container
+              replaceTermInHTML(container);
+            }
+          });
+          
+          // Add event listeners for tool modal triggers
+          // Updated handler for tool modal triggers
+const setupToolTriggers = () => {
+  const toolTriggers = document.querySelectorAll('.tool-modal-trigger');
+  
+  toolTriggers.forEach(trigger => {
+    if (!trigger.hasAttribute('data-listener-added')) {
+      trigger.setAttribute('data-listener-added', 'true');
+      
+      trigger.addEventListener('click', function(e) {
+        e.preventDefault();
+        const toolSlug = this.getAttribute('data-tool-slug');
+        
+        if (toolSlug && window.openToolModal) {
+          console.log(`Opening tool modal for: ${toolSlug}`);
+          window.openToolModal(toolSlug);
+        } else {
+          console.error(`Could not open tool modal for ${toolSlug}. Modal function not available or no slug specified.`);
+        }
+      });
+    }
+  });
+};
+
+// Make sure this runs after page load and tool modal script has initialized
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait a short time to ensure tool data is loaded
+  setTimeout(() => {
+    setupToolTriggers();
+    
+    // Also set up a mutation observer to catch dynamically added triggers
+    const contentContainer = document.getElementById('blog-content');
+    if (contentContainer) {
+      const observer = new MutationObserver(setupToolTriggers);
+      observer.observe(contentContainer, { childList: true, subtree: true });
+    }
+    
+    // Debug helper - log available tools
+    if (window.toolsData) {
+      console.log(`Tools available: ${window.toolsData.length}`);
+      if (window.toolsData.length > 0) {
+        // Log a few tool names as examples
+        console.log(`Sample tools: ${window.toolsData.slice(0, 3).map(t => t.title).join(', ')}`);
+      }
+    } else {
+      console.warn('No tools data available yet. Tool modals may not work correctly.');
+    }
+  }, 500);
+});
+          
+          // Set up triggers initially
+          setupToolTriggers();
+          
+          // Re-scan for triggers if content changes (for dynamic content)
+          const observer = new MutationObserver(setupToolTriggers);
+          observer.observe(contentContainer, { childList: true, subtree: true });
+        }
+      });
     </script>
 
     <script>
@@ -474,6 +698,24 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
         text-underline-offset: 3px;
       }
 
+      /* Auto-hyperlink styling */
+      .prose a.auto-hyperlink {
+        text-decoration-style: dotted;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+
+      .prose a.auto-hyperlink:hover {
+        text-decoration-style: solid;
+      }
+
+      /* Special handling for blockquote links - make sure they're still visible */
+      .prose blockquote a {
+        color: var(--color-primary);
+        text-decoration: underline;
+        font-weight: 500;
+      }
+
       /* Keep the gradient text styling for the page title only */
       .gradient-text {
         @apply bg-clip-text text-transparent;
@@ -578,6 +820,31 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
         font-weight: 600;
         margin-right: 0.25rem;
       }
+
+      /* Smooth scroll behavior for the entire page */
+      html {
+        scroll-behavior: smooth;
+      }
+
+      /* Add some spacing to headings to account for fixed header */
+      .prose h1,
+      .prose h2,
+      .prose h3,
+      .prose h4,
+      .prose h5,
+      .prose h6 {
+        scroll-margin-top: 6rem;
+      }
+
+      /* Prevent page scrollbars */
+      body {
+        overflow-x: hidden;
+      }
+      
+      html {
+        overflow-x: hidden;
+      }
+
     </style>
   </body>
 </html>

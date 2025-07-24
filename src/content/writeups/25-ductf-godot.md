@@ -99,12 +99,12 @@ So in our decompilation we are looking for the following:
 I firstly do a search on Ghidra for `Can't open encrypted` in the 'Memory' search.
 
 
-![search results](images/ductf-25/search.png)
+![search results](images/25-ductf/search.png)
 
 We get 2 hits, the second one `144413498` is the correct one. 
 
 
-![error function in Ghidra](images/ductf-25/error-func.png)
+![error function in Ghidra](images/25-ductf/error-func.png)
 
 Now we can select that entry and look at `References > Show References to Address`.
 
@@ -124,7 +124,7 @@ for (lVar9 = 0;
 This looks really similar to the `for` loop from earlier in the src being used on a global variable with an index (`&DAT_` is a global variable), lets look what `&DAT_143f78540` is.
 
 
-![the encryption key](images/ductf-25/key.png)
+![the encryption key](images/25-ductf/key.png)
 
 This looks like the right variable, 32 bytes long, used appropriately. Let's fix that up and test it.
 
@@ -134,10 +134,10 @@ Encryption key: `52d066de1115fc479e53fcf821715ad7db73e12df7e557833712136b4ff7529
 We can now use [GDRETools/gdsdecomp](https://github.com/GDRETools/gdsdecomp) to extract the project with the encryption key.
 
 
-![godot rev image](images/ductf-25/godot-rev.png)
+![godot rev image](images/25-ductf/godot-rev.png)
 
 
-![extraction of project](images/ductf-25/extract-project.png)
+![extraction of project](images/25-ductf/extract-project.png)
 
 Once extracted, some quick searching for the flag inside the `.gd` files turns up empty, but there is some suspiscious behaviour inside `player.gd`:
 
@@ -156,7 +156,7 @@ If variables `lucky` and `godot` are set, we are teleported super high into the 
 Using the [Godot Project Editor Online](https://editor.godotengine.org/) we can load the project and have a look in the air.
 
 
-![flag header](images/ductf-25/flagheader.png)
+![flag header](images/25-ductf/flagheader.png)
 
 There is the start of a flag in the air but the rest isn't there, I suspect due to it being loaded once the game starts.
 
@@ -178,6 +178,6 @@ func _physics_process(delta: float) -> void:
 I also had to increase the size of the screen, then I could retrieve the flag!
 
 
-![flag](images/ductf-25/flag.png)
+![flag](images/25-ductf/flag.png)
 
 Flag: `DUCTF{THE_BOY_WILL_NEVER_REMEMBER}`
