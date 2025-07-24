@@ -92,10 +92,16 @@ emulator64_arm64:/ #
 
 # Setting up Burp Suite
 
-Firstly, open Burp Suite and change your proxy listener from 'Loopback only' to 'All interfaces'.
-
+Firstly, open Burp Suite and change your proxy listener from 'Loopback only' to 'Specific address'. 
 
 ![burp settings](images/rootedandroid/burpsuiteproxy.png)
+
+The address should be selected based on the IP from this command (which retrieves your current local IP address from your WiFi or Ethernet connection, whatever is on `en0`):
+```bash
+ipconfig getifaddr en0
+```
+
+> Note that doing this means the proxy will be available to everyone on your current WiFi network.
 
 Then get the certificate by pressing the 'Import / export certificate' button. Select 'Certificate in DER', then export. I save mine as `burpcert.der`
 
@@ -141,13 +147,7 @@ Go to the settings, then WiFi, then press the 'Settings' icon on the WiFi connec
 
 > Sometimes you may see a TPLink SIM connection, just ignore it.
 
-On your host, find the IP address for your device on your current network. For Mac this can be done like this:
-```bash
-ipconfig getifaddr en0
-```
-
-Modify your proxy settings to the following, except make sure to substitute your 'Proxy hostname' for your IP.
-
+Modify your proxy settings to the following, except make sure to substitute your 'Proxy hostname' for the IP you set in Burp Suite.
 
 ![Settings for the WiFi proxy](images/rootedandroid/wifiproxysettings.png)
 
