@@ -145,7 +145,7 @@ On the phone, open the Magisk app then go to 'Modules'. Press 'Install from Stor
 
 Go to the settings, then WiFi, then press the 'Settings' icon on the WiFi connection. Press the small pencil icon in the top right to edit the connection. There should be a 'Proxy' option.
 
-> Sometimes you may see a TPLink SIM connection, just ignore it.
+> Sometimes you may see a T-Mobile SIM connection, just ignore it.
 
 Modify your proxy settings to the following, except make sure to substitute your 'Proxy hostname' for the IP you set in Burp Suite.
 
