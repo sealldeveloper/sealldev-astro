@@ -30,53 +30,28 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
   <article class="border-border bg-background-offset hover:bg-background-alt relative w-full overflow-hidden rounded-lg border transition-all duration-300">
     
     <!-- Header with gradient background and optional image -->
-    <div class="relative h-64 w-full overflow-hidden">
+    <div class="relative h-48 w-full overflow-hidden">
       <!-- Gradient background -->
       <div class="absolute inset-0 bg-gradient-to-r from-primary to-secondary"></div>
       
-      <!-- Blog title and meta overlay -->
-      <div class="absolute inset-0 p-6 text-white z-10 flex flex-col justify-between">
-        <div class="sm:pr-56 pr-40"> <!-- Add right padding to avoid image overlap -->
-          <h2 class="font-bold sm:text-xl text-lg leading-tight break-words mb-4">
-            {blog.data.title}
-          </h2>
-          
-          <!-- Section badge -->
-          {blog.data.section && (
-            <span class="bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 text-sm font-medium inline-block">
-              {blog.data.section}
+      <!-- Text positioning - properly centered when no image, top-left when image is present -->
+      <div class={`absolute text-white ${blog.data.image ? 'top-4 left-4 sm:w-3/5 w-2/5' : 'inset-0 flex items-center justify-center'}`}>
+        {!blog.data.image ? (
+          <div class="w-full text-center">
+            <span class="font-bold sm:text-xl text-lg break-words">
+              {blog.data.title}
             </span>
-          )}
-        </div>
-        
-        <!-- Meta information at bottom -->
-        <div class="flex items-center justify-between sm:pr-56 pr-40"> <!-- Add right padding here too -->
-          <div class="flex items-center gap-4 text-sm">
-            <div class="flex items-center gap-1">
-              <Icon name="mdi:calendar" class="size-4" />
-              <time datetime={blog.data.pubDate.toISOString()}>
-                {formattedDate}
-              </time>
-            </div>
-            
-            <div class="flex items-center gap-1">
-              <Icon name="mdi:clock-outline" class="size-4" />
-              <span>{readingTime} min read</span>
-            </div>
           </div>
-          
-          {blog.data.author && (
-            <div class="flex items-center gap-1 text-sm">
-              <Icon name="mdi:account" class="size-4" />
-              <span>{blog.data.author}</span>
-            </div>
-          )}
-        </div>
+        ) : (
+          <span class="font-bold sm:text-xl text-lg break-words">
+            {blog.data.title}
+          </span>
+        )}
       </div>
       
       <!-- Optional featured image (positioned at right) -->
       {blog.data.image && (
-        <div class="absolute right-6 top-1/2 -translate-y-1/2 overflow-hidden rounded-lg border-2 border-white/50 shadow-lg h-48 w-48">
+        <div class="absolute right-4 top-1/2 -translate-y-1/2 overflow-hidden rounded-lg border-2 border-white/50 shadow-lg h-36 w-36 md:h-40 md:w-40">
           <Image
             src={blog.data.image}
             alt={blog.data.title}
@@ -90,10 +65,41 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
 
     <!-- Content section -->
     <div class="p-6">
+      <!-- Metadata badges area -->
+      <div class="mb-2 flex flex-wrap gap-2">
+        {blog.data.section && (
+          <span class="bg-primary/20 rounded px-2 py-1 text-primary text-xs">
+            {blog.data.section}
+          </span>
+        )}
+        {blog.data.author && (
+          <span class="bg-secondary/20 rounded px-2 py-1 text-secondary text-xs">
+            by {blog.data.author}
+          </span>
+        )}
+      </div>
+      
+      <h2 class="text-text mb-2 font-bold text-xl">{blog.data.title}</h2>
+      
       <!-- Description -->
-      <p class="text-text-offset line-clamp-3 leading-relaxed">
+      <p class="text-text-offset mb-4 line-clamp-3 leading-relaxed">
         {blog.data.description}
       </p>
+      
+      <!-- Date and reading time -->
+      <div class="flex items-center gap-4 text-sm text-text-offset">
+        <div class="flex items-center gap-1">
+          <Icon name="mdi:calendar" class="size-4" />
+          <time datetime={blog.data.pubDate.toISOString()}>
+            {formattedDate}
+          </time>
+        </div>
+        
+        <div class="flex items-center gap-1">
+          <Icon name="mdi:clock-outline" class="size-4" />
+          <span>{readingTime} min read</span>
+        </div>
+      </div>
     </div>
 
     <!-- Hover indicator -->
