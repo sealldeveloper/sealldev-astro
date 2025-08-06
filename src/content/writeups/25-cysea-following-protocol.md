@@ -705,7 +705,9 @@ The socket is the same as before, and the EVAL too.
 
 We are sending the following command to Redis:
 
-`return (redis.call("set", "img:1337", redis.call("hget", "wbc" "voted_for)))`
+```redis
+return (redis.call("set", "img:1337", redis.call("hget", "wbc" "voted_for)))
+```
 
 We are essentially grabbing the `voted_for` value and setting it to a general store instead of hashed store (my terminology may be wrong here).
 
