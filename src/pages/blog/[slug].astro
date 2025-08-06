@@ -96,16 +96,7 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
 
     <!-- initialize theme -->
     <script is:inline>
-      const themeSaved = localStorage.getItem("theme");
-
-      if (themeSaved) {
-        document.documentElement.dataset.theme = themeSaved;
-      } else {
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)",
-        ).matches;
-        document.documentElement.dataset.theme = prefersDark ? "dark" : "light";
-      }
+      document.documentElement.dataset.theme = "dark";
     </script>
 
     <!-- Initialise Flowbite -->
@@ -225,6 +216,13 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
             </div>
           )}
 
+          <!-- Table of Contents (Desktop only) -->
+          <nav id="table-of-contents" class="hidden xl:block fixed left-8 top-24 w-56 max-h-[60vh] overflow-y-auto z-40">
+            <ul id="toc-list" class="space-y-0.5">
+              <!-- TOC items will be generated dynamically -->
+            </ul>
+          </nav>
+
           <div
             class="prose prose-lg dark:prose-invert max-w-none"
             id="blog-content"
@@ -318,6 +316,228 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
       if (header) {
         header.classList.add("fixed-header");
       }
+
+      // Table of Contents functionality
+      function generateTableOfContents() {
+        const contentDiv = document.getElementById("blog-content");
+        const tocList = document.getElementById("toc-list");
+        const tocNav = document.getElementById("table-of-contents");
+        
+        if (!contentDiv || !tocList) return;
+
+        // Find all headers in the content
+        const headers = contentDiv.querySelectorAll("h1, h2, h3, h4, h5, h6");
+        
+        if (headers.length === 0) {
+          // Hide TOC if no headers found
+          tocNav.classList.add("hidden");
+          return;
+        }
+
+        // Clear existing TOC content
+        tocList.innerHTML = "";
+
+        // Build hierarchical structure
+        const headerStructure = [];
+
+        // Generate IDs and build structure
+        headers.forEach((header, index) => {
+          const headerText = header.textContent.trim();
+          const headerId = `header-${index}`;
+          const level = parseInt(header.tagName.substring(1));
+          
+          // Add ID to header for linking
+          header.id = headerId;
+          
+          headerStructure.push({
+            element: header,
+            id: headerId,
+            text: headerText,
+            level: level,
+            index: index
+          });
+        });
+
+        // Find the highest level header used in the content
+        const minHeaderLevel = Math.min(...headerStructure.map(h => h.level));
+
+        // Function to build TOC based on current active section
+        function buildTOC(activeHeaderId = null) {
+          tocList.innerHTML = "";
+          
+          let activeHeaderInfo = null;
+          
+          // Find the active header
+          if (activeHeaderId) {
+            activeHeaderInfo = headerStructure.find(h => h.id === activeHeaderId);
+          }
+          
+          // Find all ancestors of the active header
+          const ancestorIndices = [];
+          if (activeHeaderInfo) {
+            let currentLevel = activeHeaderInfo.level;
+            let currentIndex = activeHeaderInfo.index;
+            
+            // Go backwards to find all ancestors
+            for (let i = currentIndex - 1; i >= 0; i--) {
+              if (headerStructure[i].level < currentLevel) {
+                ancestorIndices.unshift(i);
+                currentLevel = headerStructure[i].level;
+              }
+            }
+          }
+          
+          headerStructure.forEach((headerInfo, structIndex) => {
+            const { id, text, level, index } = headerInfo;
+            let shouldShow = false;
+            
+            if (level === minHeaderLevel) {
+              // Always show top-level headers (whatever the highest level is)
+              shouldShow = true;
+            } else if (activeHeaderInfo) {
+              // Show if this header is:
+              // 1. An ancestor of the active header
+              // 2. The active header itself
+              // 3. A direct child of the active header or its ancestors
+              
+              if (ancestorIndices.includes(structIndex) || id === activeHeaderId) {
+                // This is an ancestor or the active header
+                shouldShow = true;
+              } else {
+                // Check if this is a direct child of active header or ancestors
+                const parentIndex = ancestorIndices.concat([activeHeaderInfo.index]).find(ancestorIndex => {
+                  const ancestor = headerStructure[ancestorIndex];
+                  return ancestor.level === level - 1 && 
+                         structIndex > ancestorIndex && 
+                         !headerStructure.slice(ancestorIndex + 1, structIndex).some(h => h.level <= ancestor.level);
+                });
+                
+                if (parentIndex !== undefined) {
+                  shouldShow = true;
+                }
+              }
+            }
+            
+            if (shouldShow) {
+              // Calculate proper indentation relative to the minimum header level
+              const indentClass = `ml-${Math.max(0, (level - minHeaderLevel) * 3)}`;
+              
+              // Create TOC list item
+              const listItem = document.createElement("li");
+              listItem.className = `${indentClass} transition-all duration-200`;
+              listItem.setAttribute("data-toc-item", id);
+              
+              const link = document.createElement("a");
+              link.href = `#${id}`;
+              link.textContent = text;
+              link.className = "block py-0.5 text-xs text-gray-400 hover:text-primary transition-colors duration-200 border-l-2 border-transparent hover:border-primary pl-2";
+              link.setAttribute("data-toc-link", id);
+              
+              // Smooth scroll behavior
+              link.addEventListener("click", (e) => {
+                e.preventDefault();
+                headerInfo.element.scrollIntoView({ 
+                  behavior: "smooth",
+                  block: "start",
+                  inline: "nearest"
+                });
+                
+                // Update URL without scrolling
+                history.replaceState(null, null, `#${id}`);
+              });
+              
+              listItem.appendChild(link);
+              tocList.appendChild(listItem);
+            }
+          });
+          
+          // Highlight the active link after building
+          if (activeHeaderId) {
+            setTimeout(() => {
+              const activeLink = document.querySelector(`[data-toc-link="${activeHeaderId}"]`);
+              if (activeLink) {
+                // Remove active class from all links
+                document.querySelectorAll("[data-toc-link]").forEach(link => {
+                  link.classList.remove("text-primary", "border-primary", "font-bold");
+                  link.classList.add("text-gray-400", "border-transparent", "font-normal");
+                });
+                
+                // Add active class to current link
+                activeLink.classList.remove("text-gray-400", "border-transparent", "font-normal");
+                activeLink.classList.add("text-primary", "border-primary", "font-bold");
+              }
+            }, 10);
+          }
+        }
+
+        // Initial build
+        buildTOC();
+
+        // Set up intersection observer for active section highlighting
+        const observerOptions = {
+          rootMargin: "-100px 0px -50% 0px",
+          threshold: 0
+        };
+
+        let currentActiveId = null;
+
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            const id = entry.target.id;
+            
+            if (entry.isIntersecting && id !== currentActiveId) {
+              currentActiveId = id;
+              
+              // Rebuild TOC with new active section (highlighting is handled inside buildTOC)
+              buildTOC(id);
+            }
+          });
+        }, observerOptions);
+
+        // Start observing all headers
+        headerStructure.forEach((headerInfo) => {
+          observer.observe(headerInfo.element);
+        });
+
+        // Position TOC to avoid footer
+        const positionTOC = () => {
+          const footer = document.querySelector("footer");
+          const article = document.querySelector("article");
+          
+          if (footer && article && tocNav) {
+            const footerRect = footer.getBoundingClientRect();
+            const articleRect = article.getBoundingClientRect();
+            const viewportHeight = window.innerHeight;
+            
+            // Check if footer is visible in viewport
+            if (footerRect.top < viewportHeight) {
+              // Footer is visible, adjust TOC position
+              const availableSpace = footerRect.top - 100; // 100px margin from footer
+              tocNav.style.maxHeight = `${Math.max(300, availableSpace)}px`;
+              tocNav.style.top = "100px"; // Fixed distance from top instead of center
+              tocNav.style.transform = "translateY(0)";
+            } else {
+              // Footer not visible, center TOC
+              // tocNav.style.maxHeight = "60vh";
+              // tocNav.style.top = "6rem"; // top-24 equivalent
+              // tocNav.style.transform = "translateY(0)";
+            }
+          }
+        };
+
+        // Initial positioning
+        positionTOC();
+        
+        // Update position on scroll and resize
+        window.addEventListener("scroll", positionTOC);
+        window.addEventListener("resize", positionTOC);
+      }
+
+      // Initialize TOC when DOM is ready
+      document.addEventListener("DOMContentLoaded", () => {
+        // Small delay to ensure content is fully rendered
+        setTimeout(generateTableOfContents, 100);
+      });
     
       // Copy link button functionality
       const copyLinkBtn = document.getElementById("copy-link-btn");
@@ -843,6 +1063,57 @@ document.addEventListener('DOMContentLoaded', function() {
       
       html {
         overflow-x: hidden;
+      }
+
+      /* Table of Contents Styling */
+      #table-of-contents {
+        /* Ensure TOC doesn't interfere with page content on smaller screens */
+        pointer-events: none;
+      }
+
+      #table-of-contents > ul {
+        pointer-events: all;
+      }
+
+      /* TOC indentation levels */
+      #toc-list .ml-0 { margin-left: 0rem; }
+      #toc-list .ml-3 { margin-left: 0.75rem; }
+      #toc-list .ml-6 { margin-left: 1.5rem; }
+      #toc-list .ml-9 { margin-left: 2.25rem; }
+      #toc-list .ml-12 { margin-left: 3rem; }
+      #toc-list .ml-15 { margin-left: 3.75rem; }
+
+      /* TOC scrollbar styling */
+      #table-of-contents::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      #table-of-contents::-webkit-scrollbar-track {
+        background: var(--color-background-alt);
+        border-radius: 2px;
+      }
+
+      #table-of-contents::-webkit-scrollbar-thumb {
+        background: var(--color-primary);
+        border-radius: 2px;
+      }
+
+      #table-of-contents::-webkit-scrollbar-thumb:hover {
+        background: var(--color-secondary);
+      }
+
+      /* Ensure TOC stays on screen on all sizes */
+      @media (min-width: 1280px) {
+        #table-of-contents {
+          left: 2rem; /* Simple fixed positioning */
+        }
+      }
+
+      /* Hide TOC on smaller screens to avoid overcrowding */
+      @media (max-width: 1279px) {
+        #table-of-contents {
+          display: none !important;
+        }
       }
 
     </style>

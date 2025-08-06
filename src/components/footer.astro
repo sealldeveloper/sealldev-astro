@@ -134,9 +134,8 @@ class ThemeDetector {
       return 'light';
     }
 
-    // Next, check system preference
-    const prefersDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return prefersDarkMode ? 'dark' : 'light';
+    // Always use dark mode
+    return 'dark';
   }
 
   static getBackgroundColor(theme) {

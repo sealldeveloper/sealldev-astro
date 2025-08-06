@@ -160,16 +160,7 @@ const title = "Writeups | sealldev";
     <meta property="og:url" content={site} />
 
     <script is:inline>
-      const themeSaved = localStorage.getItem("theme");
-
-      if (themeSaved) {
-        document.documentElement.dataset.theme = themeSaved;
-      } else {
-        const prefersDark = window.matchMedia(
-          "(prefers-color-scheme: dark)",
-        ).matches;
-        document.documentElement.dataset.theme = prefersDark ? "dark" : "light";
-      }
+      document.documentElement.dataset.theme = "dark";
     </script>
 
     <script
