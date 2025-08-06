@@ -123,7 +123,7 @@ The general function of the application is that is displays some articles and we
 
 ## DOM XSS
 
-Looking at the functionality of search, the source code `source/js/script.js` reveals a vulnerability:
+Looking at the functionality of search, the source code `source/public/js/script.js` reveals a vulnerability:
 
 ```js
 function getSearchQuery() {

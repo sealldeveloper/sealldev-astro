@@ -132,7 +132,7 @@ Calendar Timezone : Australia/Sydney
 ╚═══════════════════════╧═════════════════════╧══════════╝
 
 🗃️ Download link :
-=> https://calendar.google.com/calendar/ical/CipherBre4ker@gmail.com/basic.ics
+=> https://calendar.google.com/calendar/ical/CipherBre4ker@gmail.com/public/basic.ics
 ```
 
 We can see a 'Secret Meeting' being organised, so let's have a look at that Google Calendar ICS file in a text editor.
