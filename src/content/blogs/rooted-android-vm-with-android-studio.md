@@ -2,7 +2,7 @@
 title: "Android Pentesting Environment for Mac: Setup Guide and Tooling configuration"
 description: "This is documentation to setup a rooted AVD with Android Studio on Mac with tooling, because its painful and I forget how to :>"
 pubDate: 2025-07-25
-lastUpdated: 2025-07-25
+lastUpdated: 2025-08-07
 author: "sealldev"
 section: "Tutorial"
 featured: true
@@ -141,6 +141,8 @@ adb push Cert-Fixer.zip /sdcard/Download
 
 On the phone, open the Magisk app then go to 'Modules'. Press 'Install from Storage' then navigate to the Downloads folder and select 'Cert-Fixer.zip'.
 
+> I found using this makes Chrome very angry, even using Frida with SSL Pinning bypasses. Sometimes just user certificate seems OK.
+
 ## Updating the Wi-Fi to use the Proxy
 
 Go to the settings, then Wi-Fi, then press the 'Settings' icon on the Wi-Fi connection. Press the small pencil icon in the top right to edit the connection. There should be a 'Proxy' option.
@@ -162,6 +164,11 @@ Firstly, I have a `android-lab` folder I use to do my Android testing. Inside I 
 python3 -m venv .venv
 . .venv/bin/activate
 pip3 install frida-tools
+```
+
+To add the `frida-tools` to your `$PATH` make sure that `~/.local/bin` directory is in your `$PATH`. Then use this to add all Frida binaries to the path via symlink.
+```
+for file in "$VIRTUAL_ENV/bin"/frida*; do ln -s "$file" ~/.local/bin/; done
 ```
 
 Now with all the Frida utilities installed, we need to get the copies for the AVD. I have this one-liner to get the relevant binaries:
@@ -188,21 +195,30 @@ emu64a:/ # /data/local/tmp/frida-server &
 
 This starts `frida-server` on your AVD, and the `&` is to make it a background task so you can continue using the terminal, and it will continue to execute once you close the shell.
 
+> As of writing `objection` is quite picky with versioning with `frida`, I used `uv` and `frida==16.7.19` with `objection>=1.11.0`.
+
 On the host you can list the available running applications with this:
 ```bash
-frida-ps -Uai
+uv run frida-ps -Uai
 ```
 
 `objection` can then be used to bypass SSL pinning and begin exploration!
 
-
 ```bash
-objection -g "com.app.app" explore
+uv run objection -g "com.app.app" explore
 
 com.app.app on (google :15) [usb] # android sslpinning disable
 (agent) Custom TrustManager ready, overriding SSLContext.init()
 (agent) Found com.android.org.conscrypt.TrustManagerImpl, overriding TrustManagerImpl.verifyChain()
 (agent) Found com.android.org.conscrypt.TrustManagerImpl, overriding TrustManagerImpl.checkTrustedRecursive()
 (agent) Registering job 907543. Type: android-sslpinning-disable
+```
+
+We can also just do this without `objection` with a Frida script. A good one shared to me was [Frida-Multiple-Bypass](https://codeshare.frida.re/@fdciabdul/frida-multiple-bypass/)
+
+Using the PID from `frida-ps` and a local copy of the script, we can bypass SSL and root detection fairly well.
+
+```bash
+uv run frida -U PID -l ssl-root-bypass.js
 ```
 

@@ -89,7 +89,7 @@ if (enc_directory) {
 }
 ```
 
-So in our decompilation we are looking for the following:
+So in our decompilation, we are looking for the following:
 - One of the dynamic error messages near the usage of `script_encryption_key` can be used to find this functionality.
 - Once we find a match, we want a:
     - Global variable (starts with `&DAT_`)
