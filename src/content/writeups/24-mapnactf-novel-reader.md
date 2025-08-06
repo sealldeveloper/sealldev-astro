@@ -27,6 +27,6 @@ We then see that the path has to start with `public/` to be read.
 
 We can achieve path traversal to read the flag using the following payload: `public/%252e%252e/%252e%252e/flag.txt`
 
-Making the final web request to `/api/read/public/%252e%252e/%252e%252e/flag.txt` gives us the flag.
+Making the final web request to `/api/read/%252e%252e/%252e%252e/flag.txt` gives us the flag.
 
 Flag: `MAPNA{uhhh-1-7h1nk-1-f0r607-70-ch3ck-cr3d17>0-4b331d4b}`

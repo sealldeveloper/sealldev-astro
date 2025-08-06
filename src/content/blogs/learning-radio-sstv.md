@@ -65,7 +65,7 @@ Now, let's go to **105.7** and hear sweet, sweet Triple J.
 > 🚨 VOLUME WARNING
 
 <video controls>
-<source src="/public/blog-hackrf-triplej.mp4" type="video/mp4" />
+<source src="/blog-hackrf-triplej.mp4" type="video/mp4" />
 </video>
 
 
@@ -166,7 +166,7 @@ This then gave us the following `.wav` file:
 
 
 <audio controls>
-<source src="/public/blog-hackrf-sstv.wav" type="audio/wav" />
+<source src="/blog-hackrf-sstv.wav" type="audio/wav" />
 </audio>
 
 ## 2 & 3. Transmission and Recording
@@ -184,14 +184,14 @@ Using Pavucontrol and Audacity, I changed my input device to the output of Gqrx 
 Now we can 'Play' the IQ files and relisten to them at the correct frequency.
 
 <audio controls>
-<source src="/public/blog-hackrf-sstvtransmission.wav" type="audio/wav" />
+<source src="/blog-hackrf-sstvtransmission.wav" type="audio/wav" />
 </audio>
 
 ## Results!
 
 Here is a recording I made while doing this with the raw file.
 <video controls>
-<source src="/public/blog-hackrf-transmissionrecording.mp4" type="video/mp4" />
+<source src="/blog-hackrf-transmissionrecording.mp4" type="video/mp4" />
 </video>
 
 And here is the final result from QSSTV.

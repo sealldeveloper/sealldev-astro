@@ -55,6 +55,6 @@ execute as @a at @s if entity @e[type=minecraft:marker,distance=..1] run functio
 
 Either way, we get the flag in chat.
 
-<img src="/public/24-sasctf-parkourgif.gif"/>
+<img src="/24-sasctf-parkourgif.gif"/>
 
 Flag: `SAS{p4rkour_m4ster_68671502BB91657819EE}`
