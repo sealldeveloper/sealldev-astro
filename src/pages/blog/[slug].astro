@@ -309,6 +309,19 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
     <Footer />
     <ToolModal/>
 
+    <!-- Image Zoom Modal -->
+    <div id="image-zoom-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm">
+      <div class="relative h-full w-full flex items-center justify-center p-4">
+        <img id="zoomed-image" src="" alt="" class="max-h-full max-w-full object-contain cursor-zoom-in" />
+        <button id="close-zoom-modal" class="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors z-10">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
 
     <script>
       // Ensure the header always has the fixed-header class
@@ -537,7 +550,152 @@ const readingTime = Math.ceil(wordCount / wordsPerMinute);
       document.addEventListener("DOMContentLoaded", () => {
         // Small delay to ensure content is fully rendered
         setTimeout(generateTableOfContents, 100);
+        
+        // Initialize image zoom functionality
+        initializeImageZoom();
       });
+
+      // Image zoom functionality
+      function initializeImageZoom() {
+        const modal = document.getElementById("image-zoom-modal");
+        const zoomedImage = document.getElementById("zoomed-image");
+        const closeButton = document.getElementById("close-zoom-modal");
+        
+        if (!modal || !zoomedImage || !closeButton) return;
+
+        let isZoomed = false;
+        let scale = 1;
+        let translateX = 0;
+        let translateY = 0;
+
+        // Find all images in the blog content
+        const blogContent = document.getElementById("blog-content");
+        if (!blogContent) return;
+        
+        const images = blogContent.querySelectorAll("img");
+        
+        images.forEach(img => {
+          // Add zoom cursor and click handler (no hover zoom)
+          img.style.cursor = "zoom-in";
+          img.classList.add("blog-zoomable-image");
+          
+          img.addEventListener("click", (e) => {
+            e.preventDefault();
+            openImageModal(img.src, img.alt);
+          });
+        });
+
+        // Modal image zoom functionality
+        zoomedImage.addEventListener("click", (e) => {
+          const rect = zoomedImage.getBoundingClientRect();
+          const clickX = e.clientX - rect.left;
+          const clickY = e.clientY - rect.top;
+          
+          if (!isZoomed) {
+            // Zoom in at cursor position
+            scale = 2;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            translateX = (centerX - clickX) * scale;
+            translateY = (centerY - clickY) * scale;
+            isZoomed = true;
+            zoomedImage.style.cursor = "zoom-out";
+          } else {
+            // Zoom out
+            scale = 1;
+            translateX = 0;
+            translateY = 0;
+            isZoomed = false;
+            zoomedImage.style.cursor = "zoom-in";
+          }
+          
+          updateImageTransform();
+        });
+
+        // Pan functionality when zoomed
+        let isPanning = false;
+        let startX, startY, initialTranslateX, initialTranslateY;
+
+        zoomedImage.addEventListener("mousedown", (e) => {
+          if (isZoomed && e.button === 0) {
+            isPanning = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            initialTranslateX = translateX;
+            initialTranslateY = translateY;
+            zoomedImage.style.cursor = "grabbing";
+            e.preventDefault();
+          }
+        });
+
+        document.addEventListener("mousemove", (e) => {
+          if (isPanning) {
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            translateX = initialTranslateX + deltaX;
+            translateY = initialTranslateY + deltaY;
+            updateImageTransform();
+          }
+        });
+
+        document.addEventListener("mouseup", () => {
+          if (isPanning) {
+            isPanning = false;
+            zoomedImage.style.cursor = isZoomed ? "zoom-out" : "zoom-in";
+          }
+        });
+
+        function updateImageTransform() {
+          zoomedImage.style.transform = `scale(${scale}) translate(${translateX / scale}px, ${translateY / scale}px)`;
+          zoomedImage.style.transformOrigin = "center";
+        }
+
+        // Modal close handlers
+        closeButton.addEventListener("click", closeImageModal);
+        modal.addEventListener("click", (e) => {
+          // Close if clicking on the modal background (not the image or its container)
+          if (e.target === modal || (e.target.closest && !e.target.closest('#zoomed-image'))) {
+            closeImageModal();
+          }
+        });
+
+        // Close on escape key
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+            closeImageModal();
+          }
+        });
+
+        function openImageModal(src, alt) {
+          zoomedImage.src = src;
+          zoomedImage.alt = alt;
+          modal.classList.remove("hidden");
+          modal.classList.add("flex");
+          document.body.style.overflow = "hidden";
+          
+          // Reset zoom state
+          isZoomed = false;
+          scale = 1;
+          translateX = 0;
+          translateY = 0;
+          zoomedImage.style.cursor = "zoom-in";
+          zoomedImage.style.transform = "scale(1) translate(0px, 0px)";
+        }
+
+        function closeImageModal() {
+          modal.classList.add("hidden");
+          modal.classList.remove("flex");
+          document.body.style.overflow = "";
+          zoomedImage.src = "";
+          zoomedImage.alt = "";
+          
+          // Reset zoom state
+          isZoomed = false;
+          scale = 1;
+          translateX = 0;
+          translateY = 0;
+        }
+      }
     
       // Copy link button functionality
       const copyLinkBtn = document.getElementById("copy-link-btn");
@@ -1114,6 +1272,92 @@ document.addEventListener('DOMContentLoaded', function() {
         #table-of-contents {
           display: none !important;
         }
+      }
+
+      /* Image zoom functionality */
+      .blog-zoomable-image {
+        border-radius: 0.5rem;
+        max-width: 100%;
+        height: auto;
+        transition: box-shadow 0.3s ease;
+      }
+
+      .blog-zoomable-image:hover {
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+      }
+
+      /* Image zoom modal */
+      #image-zoom-modal {
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.2s ease-out;
+      }
+
+      #image-zoom-modal.hidden {
+        animation: fadeOut 0.2s ease-out;
+      }
+
+      #zoomed-image {
+        animation: zoomIn 0.3s ease-out;
+        border-radius: 0.5rem;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        transition: transform 0.3s ease;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+
+      /* Cursor states for modal image */
+      #zoomed-image.zoom-in {
+        cursor: zoom-in;
+      }
+
+      #zoomed-image.zoom-out {
+        cursor: zoom-out;
+      }
+
+      #zoomed-image.grabbing {
+        cursor: grabbing;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadeOut {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
+      }
+
+      @keyframes zoomIn {
+        from {
+          transform: scale(0.8);
+          opacity: 0;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* Improve image styling in prose content */
+      .prose img {
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        margin: 1.5rem auto;
+        display: block;
+      }
+
+      /* Dark mode image adjustments */
+      [data-theme="dark"] .prose img {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       }
 
     </style>
