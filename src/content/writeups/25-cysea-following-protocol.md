@@ -74,7 +74,7 @@ tail -f /var/log/cron.log &
 wait
 ```
 
-Important note, the Redis socket initialised is shared to every single container.
+Important note, the Redis socket initialised is shared to Python & Nginx only.
 
 The `restore.sh` is used to initialise the values in the Redis store:
 ```bash
