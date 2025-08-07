@@ -16,7 +16,7 @@
     "@iconify-json/fa-brands": "^1.1.8",
     "@iconify-json/mdi": "^1.1.66",
     "@types/micromodal": "^0.3.5",
-    "astro": "^5.12.2",
+    "astro": "^5.12.8",
     "astro-icon": "^1.1.0",
     "prettier": "^3.2.5",
     "prettier-plugin-astro": "^0.13.0",
