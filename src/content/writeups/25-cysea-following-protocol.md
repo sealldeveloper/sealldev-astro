@@ -491,6 +491,12 @@ We then set `path` which:
 - Using the `indexOf` the first instance of `/` in the remainder, add 1 to it (accounting for the off-by-one error with indexes/character counts).
 - Slice the remainder at that point, getting everything after the first slash.
 
+```js
+const remainder = url.slice(5);
+const api = ['v1', 'v2', 'img'].includes(remainder.split('/')[0]) ? remainder.split('/')[0] : 'v2';
+const path = remainder.slice(remainder.indexOf('/')+1)
+```
+
 We then create a `client` with Axios and setup a `body`:
 ```js
 const client = axios.create({baseURL: `http://backend.wbc/${api}/`, allowAbsoluteUrls: false});
