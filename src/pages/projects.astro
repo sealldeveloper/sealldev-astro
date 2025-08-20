@@ -1,0 +1,137 @@
+---
+import "@fontsource-variable/inter";
+import Footer from "~/components/footer.astro";
+import Header from "~/components/header.astro";
+import ProjectCard from "~/components/projects/ProjectCard.astro";
+import logoImage from "~/assets/logo.png";
+import "~/styles/index.css";
+
+const { generator, site } = Astro;
+const image = new URL(logoImage.src, site);
+const title = "Projects";
+const description = "A collection of my projects and repositories";
+
+// Project repositories - all manually configured
+const repos = [
+  {
+    name: "pywtf",
+    owner: "sealldeveloper",
+    description: "Obfuscate any Python with only built-in functions",
+    date: "2025-07-24",
+    languages: ["Python"],
+    blogPost: "/blog/pywtf"
+  },
+  {
+    name: "overthewire-bandit-1todone",
+    owner: "sealldeveloper",
+    description: "OverTheWire Bandit wargame levels automated with Paramiko and Bash one-liners",
+    date: "2025-08-20",
+    languages: ["Bash", "Python"]
+  },
+  {
+    name: "ctf-ticket-tool",
+    owner: "sealldeveloper",
+    description: "A discord bot for running CTFs to have better ticket organisation for admins and pings for the right people",
+    date: "2024-06-11",
+    languages: ["Python"]
+  },
+  {
+    name: "ctf-team-tool",
+    owner: "sealldeveloper",
+    description: "A discord bot to create channel and categories for a CTF teams when participating, as well as a general react role",
+    date: "2024-09-04",
+    languages: ["Python"]
+  },
+  {
+    name: "webfishing-save-editor",
+    owner: "sealldeveloper",
+    description: "Save file editor for the Webfishing game",
+    date: "2024-11-14",
+    languages: ["Python"]
+  },
+  {
+    name: "rust-stalker",
+    owner: "sealldeveloper",
+    description: "A Discord bot for tracking players on Battlemetrics and Steam across Rust servers",
+    date: "2024-11-18",
+    languages: ["Python"]
+  },
+  {
+    name: "gallagher-card-hacking",
+    owner: "sealldeveloper",
+    description: "A working PoC of the Gallagher card exploit documented at Kawaiicon 2019",
+    date: "2025-05-01",
+    languages: ["Python"]
+  },
+  {
+    name: "lichess-detailed-moves",
+    owner: "sealldeveloper",
+    description: "UserScript that shows chess.com move ratings on lichess.org",
+    date: "2023-04-21",
+    languages: ["JavaScript"]
+  },
+];
+
+// Sort by date (most recent first)
+const sortedRepos = repos.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+---
+
+<!doctype html>
+<html lang="en" class="h-full motion-safe:scroll-smooth" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <meta content="#ec4899" data-react-helmet="true" name="theme-color" />
+  <meta name="generator" content={generator} />
+  <title>{title} - sealldev</title>
+  <meta name="description" content={description} />
+  <!-- social media -->
+  <meta property="og:title" content={`${title} - sealldev`} />
+  <meta property="og:type" content="website" />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content={image} />
+  <meta property="og:url" content={site} />
+  
+  <!-- initialize theme -->
+  <script is:inline>
+    document.documentElement.dataset.theme = "dark";
+  </script>
+  <!-- Initialise Flowbite -->
+  <script
+    is:inline
+    src="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.js"
+  ></script>
+</head>
+<body class="h-full overflow-x-hidden bg-default text-default text-base selection:bg-secondary selection:text-white">
+  <Header />
+  <main class="flex flex-col gap-20 px-8 py-20">
+    <div class="mx-auto max-w-6xl">
+      <section class="mb-16">
+        <div class="text-center">
+          <h1 class="text-4xl font-bold text-white mb-4">Projects</h1>
+          <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+            Stuff I have made on GitHub.
+          </p>
+        </div>
+      </section>
+
+      <section>
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {sortedRepos.map((repo) => (
+            <ProjectCard 
+              name={repo.name}
+              owner={repo.owner}
+              description={repo.description}
+              date={repo.date}
+              languages={repo.languages}
+              blogPost={repo.blogPost}
+            />
+          ))}
+        </div>
+      </section>
+    </div>
+  </main>
+  <Footer />
+</body>
+</html>

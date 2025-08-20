@@ -13,13 +13,14 @@ const widths = [450, 800];
 const sizes = "(min-width: 640px) 42vw, 67vw";
 
 const navItems = [
-  { title: "", url: "/", icon: "mdi:home" },
-  { title: "", url: "/whoami", icon: "mdi:account" },
-  { title: "", url: "/ctfs", icon: "mdi:flag" },
-  { title: "", url: "/writeups", icon: "mdi:pencil" },
-  { title: "", url: "/blog", icon: "mdi:post" },
-  { title: "", url: "/museum", icon: "mdi:museum" },
-  { title: "", url: "/contact", icon: "mdi:email" },
+  { title: "Home", url: "/", icon: "mdi:home" },
+  { title: "whoami", url: "/whoami", icon: "mdi:account" },
+  { title: "Projects", url: "/projects", icon: "mdi:folder-multiple-outline" },
+  { title: "CTFs", url: "/ctfs", icon: "mdi:flag" },
+  { title: "Writeups", url: "/writeups", icon: "mdi:pencil" },
+  { title: "Blog", url: "/blog", icon: "mdi:notebook-outline" },
+  { title: "Museum", url: "/museum", icon: "mdi:museum" },
+  { title: "Contact", url: "/contact", icon: "mdi:email" },
 ];
 ---
 
@@ -51,22 +52,30 @@ const navItems = [
       </div>
       
       <!-- Navigation Bar -->
-      <nav class="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-lg px-4 py-3">
-        <ul class="flex items-center gap-2">
-          {
-            navItems.map((item) => (
-              <li>
-                <a
-                  href={item.url}
-                  class="flex items-center justify-center p-2 rounded-md text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200"
-                >
-                  <Icon class="size-5" name={item.icon} />
-                </a>
-              </li>
-            ))
-          }
-        </ul>
-      </nav>
+      <div class="flex flex-col items-center gap-3">
+        <nav class="bg-slate-800/30 backdrop-blur-sm border border-slate-700/50 rounded-lg px-4 py-3">
+          <ul class="flex items-center gap-2">
+            {
+              navItems.map((item) => (
+                <li class="group relative">
+                  <a
+                    href={item.url}
+                    class="nav-item flex items-center justify-center p-2 rounded-md text-gray-300 hover:text-white hover:bg-slate-700/50 transition-all duration-200"
+                    data-title={item.title}
+                  >
+                    <Icon class="size-5" name={item.icon} />
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+        
+        <!-- Tooltip bubble that appears below -->
+        <div id="nav-tooltip" class="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white opacity-0 pointer-events-none transition-opacity duration-200">
+          <span id="tooltip-text"></span>
+        </div>
+      </div>
     </h2>
   </div>
 </section>
@@ -225,12 +234,40 @@ class SplashOptimizer {
   }
 }
 
+// Initialize tooltip functionality
+function initNavTooltips() {
+  const navItems = document.querySelectorAll('.nav-item');
+  const tooltip = document.getElementById('nav-tooltip');
+  const tooltipText = document.getElementById('tooltip-text');
+  
+  if (!tooltip || !tooltipText) return;
+  
+  navItems.forEach(item => {
+    item.addEventListener('mouseenter', () => {
+      const title = item.getAttribute('data-title');
+      if (title) {
+        tooltipText.textContent = title;
+        tooltip.classList.remove('opacity-0');
+        tooltip.classList.add('opacity-100');
+      }
+    });
+    
+    item.addEventListener('mouseleave', () => {
+      tooltip.classList.remove('opacity-100');
+      tooltip.classList.add('opacity-0');
+    });
+  });
+}
+
 // Initialize optimizer when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   // Only initialize if not in reduced motion mode
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     new SplashOptimizer();
   }
+  
+  // Initialize tooltips
+  initNavTooltips();
 });
 
 // Also try immediate initialization
@@ -238,6 +275,9 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
   if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     new SplashOptimizer();
   }
+  
+  // Initialize tooltips
+  initNavTooltips();
 }
 </script>
 

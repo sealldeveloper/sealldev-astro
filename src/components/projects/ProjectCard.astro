@@ -1,0 +1,149 @@
+---
+import { Icon } from "astro-icon/components";
+
+export interface Props {
+  name: string;
+  owner: string;
+  description: string;
+  date: string;
+  languages: string[];
+  blogPost?: string;
+}
+
+const { name, owner, description, date, languages, blogPost } = Astro.props;
+
+// Language color mapping
+function getLanguageColor(language: string): string {
+  const colors: Record<string, string> = {
+    'JavaScript': '#f1e05a',
+    'TypeScript': '#2b7489',
+    'Python': '#3572A5',
+    'Java': '#b07219',
+    'C++': '#f34b7d',
+    'C': '#555555',
+    'Go': '#00ADD8',
+    'Rust': '#dea584',
+    'PHP': '#4F5D95',
+    'Ruby': '#701516',
+    'Swift': '#ffac45',
+    'Kotlin': '#F18E33',
+    'HTML': '#e34c26',
+    'CSS': '#1572B6',
+    'Shell': '#89e051',
+    'Bash': '#89e051',
+    'Astro': '#ff5d01',
+    'Vue': '#4FC08D',
+    'React': '#61DAFB',
+    'Svelte': '#ff3e00'
+  };
+  return colors[language] || '#858585';
+}
+
+// Process languages for display (equal percentages)
+const languagePercentages = languages.map((lang) => ({
+  name: lang,
+  percentage: 100 / languages.length,
+  color: getLanguageColor(lang)
+}));
+
+const repoUrl = `https://github.com/${owner}/${name}`;
+const formattedDate = new Date(date).toLocaleDateString('en-US', { 
+  year: 'numeric', 
+  month: 'short', 
+  day: 'numeric' 
+});
+---
+
+<div class="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-lg p-6 hover:bg-slate-800/70 transition-all duration-300 group">
+  <!-- Header with repo name and external link -->
+  <div class="flex items-start justify-between mb-3">
+    <h3 class="text-xl font-semibold text-white group-hover:text-primary transition-colors">
+      {name}
+    </h3>
+    <a 
+      href={repoUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="text-gray-400 hover:text-white transition-colors p-1"
+      aria-label={`View ${name} on GitHub`}
+    >
+      <Icon name="mdi:external-link" class="size-5" />
+    </a>
+  </div>
+
+  <!-- Description -->
+  <p class="text-gray-300 text-sm mb-4 line-clamp-3">
+    {description}
+  </p>
+
+  <!-- Language bars -->
+  {languagePercentages.length > 0 && (
+    <div class="mb-4">
+      <div class="flex h-2 rounded-full overflow-hidden mb-2">
+        {languagePercentages.map((lang) => (
+          <div 
+            class="h-full" 
+            style={`background-color: ${lang.color}; width: ${lang.percentage}%`}
+            title={`${lang.name}: ${lang.percentage.toFixed(1)}%`}
+          />
+        ))}
+      </div>
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+        {languagePercentages.map((lang) => (
+          <div class="flex items-center gap-1">
+            <div 
+              class="w-2 h-2 rounded-full" 
+              style={`background-color: ${lang.color}`}
+            />
+            <span>{lang.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+
+
+  <!-- Footer with stats and links -->
+  <div class="flex items-center justify-between text-sm text-gray-400">
+    <div class="flex items-center gap-4">
+      {formattedDate && (
+        <div class="flex items-center gap-1">
+          <Icon name="mdi:calendar" class="size-4" />
+          <span>{formattedDate}</span>
+        </div>
+      )}
+    </div>
+
+    <!-- Blog post link if available -->
+    {blogPost && (
+      <a 
+        href={blogPost}
+        class="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors relative z-10"
+        title="Read blog post about this project"
+      >
+        <Icon name="mdi:post-outline" class="size-4" />
+        <span>Blog</span>
+      </a>
+    )}
+  </div>
+
+  <!-- Click overlay for main repo link -->
+  <a 
+    href={repoUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="absolute inset-0 rounded-lg -z-10"
+    aria-label={`View ${name} repository on GitHub`}
+  >
+    <span class="sr-only">View {name} on GitHub</span>
+  </a>
+</div>
+
+<style>
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
