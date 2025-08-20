@@ -1,11 +1,11 @@
 ---
 title: "OverTheWire Bandit Levels 11-20"
-description: "A walkthrough of basic Linux shell concepts and one-liner approaches"
+description: "Working with archives, ciphers, SSH keys, netcat, nmap and SUIDs"
 pubDate: 2025-08-21
 section: "OverTheWire"
 category: "linux"
 difficulty: "easy" 
-tags: ["linux", "ssh", "bash", "beginner"]
+tags: ["linux", "ssh", "bash", "beginner", "netcat", "nmap", "suid"]
 ---
 
 > This was made as a part of my university work, and a tool to automate all of OverTheWire's Bandit. You can see this tool [here](https://github.com/sealldeveloper/overthewire-bandit-1todone).
