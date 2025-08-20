@@ -1,5 +1,6 @@
 {
     "name": "CTFs",
     "icon": "🚩",
+    "color": "#f59e0b",
     "description": "Writeups related to jeopardy/attack-defense CTFs"
 }

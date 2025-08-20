@@ -1,5 +1,6 @@
 {
     "name": "HackTheBox",
     "iconImage": "./images/htb.png",
+    "color": "#9fef00",
     "description": "Writeups for HackTheBox machines and challenges"
 }

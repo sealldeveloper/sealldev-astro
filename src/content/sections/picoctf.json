@@ -1,5 +1,6 @@
 {
     "name": "PicoCTF",
     "iconImage": "./images/picoctf.png",
+    "color": "#3b82f6",
     "description": "Writeups for PicoCTF challenges"
 }
